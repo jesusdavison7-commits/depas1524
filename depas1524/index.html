@@ -11,6 +11,8 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+<script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
 </head>
 <body>
 
@@ -34,7 +36,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="logo"><span class="logo-icon">🏠</span><div><h1>Depas 1524</h1><p>Las Memorias · Los Mochis</p></div></div>
     <nav>
-      <button class="nav-item active" onclick="showPage('dashboard',this)"><i class="ti ti-home"></i> Tablero</button>
+      <button class="nav-item active" onclick="showPage('dashboard',this)"><i class="ti ti-home"></i> Dashboard</button>
       <button class="nav-item" onclick="showPage('deptos',this)"><i class="ti ti-building"></i> Departamentos</button>
       <button class="nav-item" onclick="showPage('servicios',this)"><i class="ti ti-calendar"></i> Servicios</button>
       <button class="nav-item" onclick="showPage('finanzas',this)"><i class="ti ti-chart-bar"></i> Finanzas</button>
@@ -47,7 +49,7 @@
   <main class="main" id="main">
 
     <div id="page-dashboard" class="page active">
-      <div class="page-header"><h2 class="page-title">Tablero</h2><span id="dash-mes" class="month-badge"></span></div>
+      <div class="page-header"><h2 class="page-title">Dashboard</h2><span id="dash-mes" class="month-badge"></span></div>
       <div id="dash-alertas"></div>
       <div class="metric-grid" id="dash-metrics"></div>
       <div class="card">
@@ -67,159 +69,240 @@
       <div class="page-header"><h2 class="page-title">Control de pagos</h2></div>
       <div class="card">
         <div class="card-header"><span class="card-title" id="pagos-mes-label">Junio 2026</span></div>
-        <table class="tbl"><thead><tr><th>Depto</th><th>Inquilino</th><th>Monto</th><th>Día límite</th><th>Forma</th><th>Estado</th><th></th></tr></thead>
+        <table class="tbl"><thead><tr><th>Depto</th><th>Inquilino</th><th class="hide-mobile">Monto</th><th class="hide-mobile">Día límite</th><th class="hide-mobile">Forma</th><th>Estado</th><th></th></tr></thead>
         <tbody id="pagos-tbody"></tbody></table>
       </div>
     </div>
 
     <div id="page-servicios" class="page">
-      <div class="page-header"><h2 class="page-title">Servicios del edificio</h2>
+      <div class="page-header"><h2 class="page-title">Servicios</h2>
         <select id="srv-mes-sel" class="select-sm" onchange="renderServicios()">
           <option value="11">Junio 2026</option><option value="10">Mayo 2026</option>
           <option value="9">Abril 2026</option><option value="8">Marzo 2026</option>
         </select>
       </div>
       <div id="cfe-alerta"></div>
-      <div class="srv-grid" id="srv-cards"></div>
-      <div class="card summary-card"><div class="summary-label">Total servicios pagados por Jesús este mes</div><div class="summary-value" id="srv-total">$0</div><div class="summary-sub">Se suman a tu 25% en finanzas</div></div>
-      <div class="card">
-        <div class="card-header"><span class="card-title">Historial de servicios</span></div>
-        <table class="tbl"><thead><tr><th>Servicio</th><th>Período / mes</th><th>Fecha pago</th><th>Monto</th><th>Estado</th></tr></thead>
-        <tbody id="cfe-hist"></tbody></table>
+      <div class="card" style="padding:0;overflow:hidden">
+        <div id="srv-cards"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#f8f8f6;border-top:1px solid #ececea">
+          <span style="font-size:12px;color:#6b6b6b">Internet Los Pinos + Saldo celular → van a tu cuenta</span>
+          <span style="font-weight:700;font-size:15px" id="srv-total">$0</span>
+        </div>
       </div>
+      <!-- Gastos de mantenimiento -->
+      <div class="card" style="margin-top:0">
+        <div class="card-header"><span class="card-title"><i class="ti ti-tool" style="margin-right:6px;color:#c0392b"></i>Gastos de mantenimiento</span></div>
+        <div style="display:grid;grid-template-columns:1fr 100px 120px auto;gap:8px;align-items:end;margin-bottom:10px">
+          <div class="form-group" style="margin:0"><label style="font-size:11px">Descripción</label><input type="text" id="gm-desc" placeholder="Ej. Pintura escalera" style="font-size:13px"></div>
+          <div class="form-group" style="margin:0"><label style="font-size:11px">Monto ($)</label><input type="number" id="gm-monto" placeholder="0" style="font-size:13px"></div>
+          <div class="form-group" style="margin:0"><label style="font-size:11px">Fecha</label><input type="date" id="gm-fecha" style="font-size:13px"></div>
+          <button class="btn btn-primary btn-sm" onclick="agregarGastoMant()" style="align-self:end;white-space:nowrap">+ Agregar</button>
+        </div>
+        <div id="gastos-mant-list"></div>
+      </div>
+
+      <details class="card" style="cursor:default;margin-top:0">
+        <summary style="cursor:pointer;font-size:14px;font-weight:600;list-style:none;display:flex;align-items:center;gap:6px;color:#1a1a1a"><i class="ti ti-history" style="color:#6b6b6b"></i> Historial de servicios</summary>
+        <table class="tbl" style="margin-top:12px"><thead><tr><th>Servicio</th><th>Mes</th><th>Monto</th><th>Estado</th></tr></thead>
+        <tbody id="cfe-hist"></tbody></table>
+      </details>
     </div>
 
     <div id="page-finanzas" class="page">
-      <div class="page-header"><h2 class="page-title">Finanzas — Junio 2026</h2></div>
-      <div class="card accent-green">
-        <div class="card-title mb-12">Distribución del mes</div>
-        <div class="fin-grid">
-          <div><table class="tbl">
-            <tr><td>Renta cobrada</td><td class="tr fw"><span id="f-cob">$0</span></td></tr>
-            <tr><td class="muted">Mantenimiento 10%</td><td class="tr red"><span id="f-mant">-$0</span></td></tr>
-            <tr><td class="muted">Limpieza</td><td class="tr red"><span id="f-limp">-$2,400</span></td></tr>
-            <tr><td class="fw">Neto a repartir</td><td class="tr fw"><span id="f-neto">$0</span></td></tr>
-          </table></div>
-          <div class="fin-splits">
-            <div class="split-card green-split">
-              <div class="split-label">Jesús (25% + servicios)</div>
-              <div class="split-value green" id="f-jesus">$0</div>
-              <div class="progress"><div class="progress-fill" style="width:25%"></div></div>
-              <div class="split-detail" id="f-jesus-det"></div>
-              <button class="btn btn-sm" style="margin-top:6px" id="btn-transfer-jesus" onclick="marcarTransferido('jesus')"><i class="ti ti-check"></i> <span id="lbl-transfer-jesus">Marcar transferido</span></button>
-            </div>
-            <div class="split-card blue-split">
-              <div class="split-label">Carlitos (75%)</div>
-              <div class="split-value blue" id="f-carlitos">$0</div>
-              <div class="progress"><div class="progress-fill blue-fill" style="width:75%"></div></div>
-              <button class="btn btn-sm" style="margin-top:6px" id="btn-transfer-carlitos" onclick="marcarTransferido('carlitos')"><i class="ti ti-check"></i> <span id="lbl-transfer-carlitos">Marcar transferido</span></button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="card" style="border-left:3px solid #1D9E75;border-radius:0 12px 12px 0">
-        <div class="card-title mb-8"><i class="ti ti-wallet" style="color:#1D9E75;margin-right:6px"></i>Bolsas acumuladas</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px" id="bolsas-display">
-          <div style="background:#E1F5EE;border-radius:10px;padding:14px">
-            <div style="font-size:11px;color:#085041;font-weight:500;text-transform:uppercase;letter-spacing:.04em">Jesús</div>
-            <div style="font-size:24px;font-weight:700;color:#1D9E75" id="bolsa-jesus-val">$0</div>
-            <div style="font-size:11px;color:#6b6b6b">Pendiente de retirar</div>
-          </div>
-          <div style="background:#E6F1FB;border-radius:10px;padding:14px">
-            <div style="font-size:11px;color:#0C447C;font-weight:500;text-transform:uppercase;letter-spacing:.04em">Carlitos</div>
-            <div style="font-size:24px;font-weight:700;color:#185FA5" id="bolsa-carlitos-val">$0</div>
-            <div style="font-size:11px;color:#6b6b6b">Pendiente de transferir</div>
-          </div>
-          <div style="background:#F0EEFF;border-radius:10px;padding:14px">
-            <div style="font-size:11px;color:#3B2E9E;font-weight:500;text-transform:uppercase;letter-spacing:.04em">Mantenimiento</div>
-            <div style="font-size:24px;font-weight:700;color:#534AB7" id="bolsa-mant-val">$0</div>
-            <div style="font-size:11px;color:#6b6b6b">Fondo acumulado</div>
-          </div>
-        </div>
-      </div>
-      <div class="card" style="border-left:3px solid #534AB7;border-radius:0 12px 12px 0">
-        <div class="card-title mb-8"><i class="ti ti-piggy-bank" style="color:#534AB7;margin-right:6px"></i>Fondo de mantenimiento acumulado</div>
-        <div id="fondo-mant-display"></div>
-      </div>
-      <div class="card"><div class="card-title mb-8">Historial de distribuciones</div><div id="fin-historial"></div></div>
+      <div class="page-header"><h2 class="page-title" id="fin-mes-titulo">Finanzas</h2><select id="fin-mes-sel" class="btn btn-sm" style="font-size:13px;padding:4px 10px" onchange="renderFinanzas()"></select></div>
+
+      <!-- Distribución del mes -->
       <div class="card">
-        <div class="card-title mb-8">Simulador de distribución</div>
-        <div class="form-row">
-          <div class="form-group"><label>Renta total ($)</label><input type="number" id="sim-renta" value="21000" oninput="calcSim()"></div>
-          <div class="form-group"><label>Gasto extra ($)</label><input type="number" id="sim-extra" value="0" oninput="calcSim()"></div>
+        <div class="card-title mb-12"><i class="ti ti-calculator" style="color:#1D9E75;margin-right:6px"></i>Distribución del mes</div>
+
+        <!-- Desglose compacto -->
+        <div style="background:#f8f8f6;border-radius:10px;padding:12px 14px;margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px"><span>Renta cobrada</span><span style="font-weight:700" id="f-cob">$0</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;color:#6b6b6b;border-top:1px solid #ececea"><span>Mantenimiento 10%</span><span class="red" id="f-mant">-$0</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;color:#6b6b6b;border-top:1px solid #ececea"><span>Limpieza</span><span class="red" id="f-limp">-$0</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;color:#6b6b6b;border-top:1px solid #ececea"><span>Internet depas</span><span class="red" id="f-srv-internet">-$0</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;color:#6b6b6b;border-top:1px solid #ececea"><span>Agua JAPAMA</span><span class="red" id="f-srv-agua">-$0</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;color:#6b6b6b;border-top:1px solid #ececea" id="f-srv-cfe-row"><span>CFE Luz <span id="f-srv-cfe-periodo" style="font-size:11px;color:#999"></span></span><span class="red" id="f-srv-cfe">-$0</span></div>
+          <div id="f-gastos-mant-lines"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0 2px;font-size:14px;font-weight:700;border-top:1px solid #d0d0ce;margin-top:2px"><span>Neto a repartir</span><span id="f-neto">$0</span></div>
         </div>
-        <div id="sim-result" class="sim-grid"></div>
+
+        <!-- Splits -->
+        <div class="fin-splits">
+          <div class="split-card green-split">
+            <div class="split-label">Jesús · 25%</div>
+            <div class="split-value green" id="f-jesus">$0</div>
+            <div class="progress" style="margin:6px 0"><div class="progress-fill" style="width:25%"></div></div>
+            <div class="split-detail" id="f-jesus-det" style="margin-bottom:8px"></div>
+            <button class="btn btn-sm" id="btn-transfer-jesus" onclick="marcarTransferido('jesus')"><i class="ti ti-check"></i> <span id="lbl-transfer-jesus">Marcar transferido</span></button>
+          </div>
+          <div class="split-card blue-split">
+            <div class="split-label">Carlitos · 75%</div>
+            <div class="split-value blue" id="f-carlitos">$0</div>
+            <div class="progress" style="margin:6px 0"><div class="progress-fill blue-fill" style="width:75%"></div></div>
+            <div style="margin-bottom:8px;font-size:12px;color:#6b6b6b">75% del neto</div>
+            <button class="btn btn-sm" id="btn-transfer-carlitos" onclick="marcarTransferido('carlitos')"><i class="ti ti-check"></i> <span id="lbl-transfer-carlitos">Marcar transferido</span></button>
+          </div>
+        </div>
       </div>
+
+      <!-- Bolsas + Fondo mantenimiento en una sola card -->
+      <div class="card">
+        <div class="card-title mb-12"><i class="ti ti-wallet" style="color:#1D9E75;margin-right:6px"></i>Bolsas acumuladas</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+          <div style="background:#E1F5EE;border-radius:10px;padding:12px;position:relative">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#085041;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Jesús</span><button onclick="toggleBolsaEdit('jesus',true)" style="background:none;border:none;cursor:pointer;color:#1D9E75;font-size:16px;padding:0" title="Ajustar">✎</button></div>
+            <div style="font-size:22px;font-weight:700;color:#1D9E75;margin:4px 0" id="bolsa-jesus-val">$0</div>
+            <div style="font-size:11px;color:#6b6b6b">Por retirar</div>
+            <div id="bolsa-jesus-edit" style="display:none;margin-top:8px">
+              <input type="number" id="bolsa-jesus-inp" style="width:100%;padding:4px 8px;border:1px solid #b2dfd0;border-radius:6px;font-size:13px;margin-bottom:6px">
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-sm btn-primary" style="flex:1;font-size:11px" onclick="ajustarBolsa('jesus')">Guardar</button>
+                <button class="btn btn-sm" style="flex:1;font-size:11px" onclick="toggleBolsaEdit('jesus',false)">Cancelar</button>
+              </div>
+            </div>
+          </div>
+          <div style="background:#E6F1FB;border-radius:10px;padding:12px;position:relative">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#0C447C;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Carlitos</span><button onclick="toggleBolsaEdit('carlitos',true)" style="background:none;border:none;cursor:pointer;color:#185FA5;font-size:16px;padding:0" title="Ajustar">✎</button></div>
+            <div style="font-size:22px;font-weight:700;color:#185FA5;margin:4px 0" id="bolsa-carlitos-val">$0</div>
+            <div style="font-size:11px;color:#6b6b6b">Por transferir</div>
+            <div id="bolsa-carlitos-edit" style="display:none;margin-top:8px">
+              <input type="number" id="bolsa-carlitos-inp" style="width:100%;padding:4px 8px;border:1px solid #bdd4f0;border-radius:6px;font-size:13px;margin-bottom:6px">
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-sm btn-primary" style="flex:1;font-size:11px" onclick="ajustarBolsa('carlitos')">Guardar</button>
+                <button class="btn btn-sm" style="flex:1;font-size:11px" onclick="toggleBolsaEdit('carlitos',false)">Cancelar</button>
+              </div>
+            </div>
+          </div>
+          <div style="background:#F0EEFF;border-radius:10px;padding:12px;position:relative">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#3B2E9E;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Mantenimiento</span><button onclick="toggleBolsaEdit('mant',true)" style="background:none;border:none;cursor:pointer;color:#534AB7;font-size:16px;padding:0" title="Ajustar">✎</button></div>
+            <div style="font-size:22px;font-weight:700;color:#534AB7;margin:4px 0" id="bolsa-mant-val">$0</div>
+            <div style="font-size:11px;color:#6b6b6b">Fondo acumulado</div>
+            <div id="bolsa-mant-edit" style="display:none;margin-top:8px">
+              <input type="number" id="bolsa-mant-inp" style="width:100%;padding:4px 8px;border:1px solid #c8c0f0;border-radius:6px;font-size:13px;margin-bottom:6px">
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-sm btn-primary" style="flex:1;font-size:11px" onclick="ajustarBolsa('mant')">Guardar</button>
+                <button class="btn btn-sm" style="flex:1;font-size:11px" onclick="toggleBolsaEdit('mant',false)">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;justify-content:flex-end">
+          <button class="btn btn-sm" onclick="recalcularBolsas()" title="Recalcula Jesús y Carlitos desde el historial real"><i class="ti ti-refresh"></i> Recalcular bolsas</button>
+        </div>
+        <details style="margin-top:8px">
+          <summary style="cursor:pointer;font-size:12px;color:#6b6b6b;padding:4px 0;user-select:none">Detalle fondo de mantenimiento</summary>
+          <div id="fondo-mant-display" style="margin-top:10px"></div>
+        </details>
+      </div>
+
+      <!-- Depósitos en garantía -->
+      <div class="card">
+        <div class="card-title mb-12"><i class="ti ti-lock" style="color:#1D9E75;margin-right:6px"></i>Depósitos en garantía</div>
+        <div id="fin-depositos"></div>
+      </div>
+
+      <!-- Historial colapsable -->
+      <details class="card" style="cursor:default">
+        <summary style="cursor:pointer;font-size:14px;font-weight:600;list-style:none;display:flex;align-items:center;gap:6px;color:#1a1a1a"><i class="ti ti-history" style="color:#6b6b6b"></i> Historial de distribuciones</summary>
+        <div id="fin-historial" style="margin-top:12px"></div>
+      </details>
+
     </div>
 
     <div id="page-contratos" class="page">
       <div class="page-header"><h2 class="page-title">Generador de contratos</h2></div>
       <div class="two-col">
         <div>
-          <div class="card">
-            <div class="card-title mb-12">Selecciona inquilino existente</div>
-            <div class="form-group"><label>Inquilino</label><select id="c-sel" onchange="cargarContrato()"><option value="">— Manual o selecciona —</option></select></div>
-          </div>
-          <div class="card">
-            <div class="card-title mb-12">INE — llenado automático con IA</div>
-            <div class="ine-grid">
-              <div><div class="section-label">INE inquilino</div>
-                <div class="ine-zone" onclick="document.getElementById('c-ine-inq').click()">
-                  <input type="file" id="c-ine-inq" accept="image/*" style="display:none" onchange="leerINEContrato(event,'inq')">
-                  <i class="ti ti-id muted-icon" style="font-size:22px"></i>
-                  <div class="text-muted" style="font-size:12px;margin-top:4px">Subir INE</div>
-                </div>
-                <div id="c-ine-inq-prev"></div><div id="c-ine-inq-st"></div>
-              </div>
-              <div><div class="section-label">INE aval</div>
-                <div class="ine-zone" onclick="document.getElementById('c-ine-aval').click()">
-                  <input type="file" id="c-ine-aval" accept="image/*" style="display:none" onchange="leerINEContrato(event,'aval')">
-                  <i class="ti ti-id muted-icon" style="font-size:22px"></i>
-                  <div class="text-muted" style="font-size:12px;margin-top:4px">Subir INE</div>
-                </div>
-                <div id="c-ine-aval-prev"></div><div id="c-ine-aval-st"></div>
-              </div>
+          <!-- Selector + limpiar -->
+          <div class="card" style="padding-bottom:12px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="form-group" style="margin:0;flex:1"><select id="c-sel" onchange="cargarContrato()" style="margin:0"><option value="">— Selecciona inquilino o llena manual —</option></select></div>
+              <button class="btn btn-sm" onclick="limpiarContrato()" style="color:#6b6b6b;border-color:#d0d0d0;white-space:nowrap"><i class="ti ti-eraser"></i> Limpiar</button>
             </div>
           </div>
-          <div class="card">
-            <div class="card-title mb-12">Datos del contrato</div>
-            <div class="form-row"><div class="form-group"><label>Nombre inquilino</label><input type="text" id="c-nombre" oninput="prevContrato();checkAltaBtn()"></div><div class="form-group"><label>Nombre aval</label><input type="text" id="c-aval" oninput="prevContrato()"></div></div>
-            <div class="form-row">
-              <div class="form-group"><label>Departamento</label><select id="c-depto" onchange="cPiso();prevContrato();checkAltaBtn()"><option value="">— Selecciona —</option><option value="1">Depto 1</option><option value="2">Depto 2</option><option value="3">Depto 3</option><option value="4">Depto 4</option><option value="5">Depto 5</option><option value="6">Depto 6</option><option value="7">Depto 7</option><option value="8">Depto 8</option></select></div>
-              <div class="form-group"><label>Piso</label><input type="text" id="c-piso" readonly value="—"></div>
+
+          <!-- Tabs principal -->
+          <div class="card" style="padding-top:0">
+            <div class="tabs" id="ctabs-nav" style="margin:0 -16px 16px;padding:0 16px;border-bottom:1px solid #f0f0ee">
+              <button class="tab active" onclick="swTab('ctab-datos','ctabs',this)"><i class="ti ti-file-description" style="font-size:13px"></i> Contrato</button>
+              <button class="tab" onclick="swTab('ctab-ine','ctabs',this)"><i class="ti ti-id" style="font-size:13px"></i> INE · IA</button>
             </div>
-            <div class="form-row"><div class="form-group"><label>Duración</label><select id="c-dur" onchange="cFin();prevContrato()">
-  <option value="1 MES">1 mes</option>
-  <option value="2 MESES">2 meses</option>
-  <option value="3 MESES">3 meses</option>
-  <option value="4 MESES">4 meses</option>
-  <option value="5 MESES">5 meses</option>
-  <option value="SEIS MESES" selected>6 meses</option>
-  <option value="7 MESES">7 meses</option>
-  <option value="8 MESES">8 meses</option>
-  <option value="9 MESES">9 meses</option>
-  <option value="10 MESES">10 meses</option>
-  <option value="11 MESES">11 meses</option>
-  <option value="UN AÑO">12 meses (1 año)</option>
-</select></div><div class="form-group"><label>Fecha inicio</label><input type="date" id="c-ini" onchange="cFin();prevContrato()"></div></div>
-            <div class="form-row"><div class="form-group"><label>Fecha fin (auto)</label><input type="date" id="c-fin-f" readonly></div><div class="form-group"><label>Renta ($)</label><input type="number" id="c-monto" value="5000" oninput="prevContrato()"></div></div>
-            <div class="form-row"><div class="form-group"><label>Teléfono (opcional)</label><input type="text" id="c-tel"></div><div class="form-group"><label>Correo (opcional)</label><input type="text" id="c-email"></div></div>
-            <div class="form-row"><div class="form-group"><label>Fecha de nacimiento (opcional)</label><input type="date" id="c-nac"></div><div class="form-group"><label>Domicilio de origen (opcional)</label><input type="text" id="c-dom"></div></div>
-            <div id="alta-box" style="display:none;margin-top:10px;padding:10px;background:#E1F5EE;border-radius:8px;border:1px solid #b2dfd0">
-              <div style="font-size:12px;color:#085041;margin-bottom:8px"><i class="ti ti-user-plus"></i> <strong>Dar de alta en Departamentos</strong></div>
-              <button class="btn btn-primary" onclick="darDeAlta()"><i class="ti ti-user-check"></i> Dar de alta inquilino</button>
+            <div id="ctabs">
+
+              <!-- Tab Contrato -->
+              <div id="ctab-datos" class="tab-panel active">
+                <div class="form-row">
+                  <div class="form-group"><label>Nombre inquilino</label><input type="text" id="c-nombre" placeholder="Nombre completo" oninput="prevContrato();checkAltaBtn()"></div>
+                  <div class="form-group"><label>Nombre aval</label><input type="text" id="c-aval" placeholder="Nombre completo" oninput="prevContrato()"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label>Departamento</label><select id="c-depto" onchange="cPiso();prevContrato();checkAltaBtn()"><option value="">— Selecciona —</option><option value="1">Depto 1</option><option value="2">Depto 2</option><option value="3">Depto 3</option><option value="4">Depto 4</option><option value="5">Depto 5</option><option value="6">Depto 6</option><option value="7">Depto 7</option><option value="8">Depto 8</option></select></div>
+                  <div class="form-group"><label>Piso</label><input type="text" id="c-piso" readonly value="—"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label>Duración</label><select id="c-dur" onchange="cFin();prevContrato()"><option value="1 MES">1 mes</option><option value="2 MESES">2 meses</option><option value="3 MESES">3 meses</option><option value="4 MESES">4 meses</option><option value="5 MESES">5 meses</option><option value="SEIS MESES" selected>6 meses</option><option value="7 MESES">7 meses</option><option value="8 MESES">8 meses</option><option value="9 MESES">9 meses</option><option value="10 MESES">10 meses</option><option value="11 MESES">11 meses</option><option value="UN AÑO">12 meses (1 año)</option></select></div>
+                  <div class="form-group"><label>Renta ($)</label><input type="number" id="c-monto" value="5000" oninput="prevContrato()"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label>Fecha inicio</label><input type="date" id="c-ini" onchange="cFin();prevContrato()"></div>
+                  <div class="form-group"><label>Fecha fin (auto)</label><input type="date" id="c-fin-f" readonly></div>
+                </div>
+
+                <!-- Datos opcionales colapsables -->
+                <details style="margin-top:4px">
+                  <summary style="cursor:pointer;font-size:12px;color:#6b6b6b;padding:6px 0;user-select:none">Datos adicionales (opcionales)</summary>
+                  <div style="margin-top:10px">
+                    <div class="form-row"><div class="form-group"><label>Teléfono</label><input type="text" id="c-tel"></div><div class="form-group"><label>Correo</label><input type="text" id="c-email"></div></div>
+                    <div class="form-row"><div class="form-group"><label>Fecha de nacimiento</label><input type="date" id="c-nac"></div><div class="form-group"><label>Domicilio de origen</label><input type="text" id="c-dom"></div></div>
+                  </div>
+                </details>
+
+                <!-- Acciones contextuales -->
+                <div id="alta-box" style="display:none;margin-top:12px;padding:10px;background:#E1F5EE;border-radius:8px;border:1px solid #b2dfd0;display:flex;align-items:center;justify-content:space-between">
+                  <span style="font-size:12px;color:#085041"><i class="ti ti-user-plus"></i> <strong>Nuevo inquilino detectado</strong></span>
+                  <button class="btn btn-sm btn-primary" onclick="darDeAlta()"><i class="ti ti-user-check"></i> Dar de alta</button>
+                </div>
+                <div id="elim-contrato-box" style="display:none;margin-top:8px;padding:8px 12px;background:#FCEBEB;border-radius:8px;border:1px solid #F7C1C1;display:flex;align-items:center;justify-content:space-between">
+                  <span style="font-size:12px;color:#a32d2d"><i class="ti ti-alert-triangle"></i> Inquilino activo</span>
+                  <button class="btn btn-sm btn-danger" onclick="eliminarContrato()"><i class="ti ti-trash"></i> Eliminar</button>
+                </div>
+              </div>
+
+              <!-- Tab INE -->
+              <div id="ctab-ine" class="tab-panel">
+                <div class="info-note purple-note" style="margin-bottom:14px"><i class="ti ti-sparkles"></i> <strong>IA activa:</strong> sube una foto del INE y los datos se llenan automáticamente.</div>
+                <div class="ine-grid">
+                  <div><div class="section-label">INE inquilino</div>
+                    <div class="ine-zone" onclick="document.getElementById('c-ine-inq').click()">
+                      <input type="file" id="c-ine-inq" accept="image/*" style="display:none" onchange="leerINEContrato(event,'inq')">
+                      <i class="ti ti-id muted-icon" style="font-size:26px"></i>
+                      <div class="text-muted" style="font-size:12px;margin-top:4px">Subir INE</div>
+                    </div>
+                    <div id="c-ine-inq-prev"></div><div id="c-ine-inq-st"></div>
+                  </div>
+                  <div><div class="section-label">INE aval</div>
+                    <div class="ine-zone" onclick="document.getElementById('c-ine-aval').click()">
+                      <input type="file" id="c-ine-aval" accept="image/*" style="display:none" onchange="leerINEContrato(event,'aval')">
+                      <i class="ti ti-id muted-icon" style="font-size:26px"></i>
+                      <div class="text-muted" style="font-size:12px;margin-top:4px">Subir INE</div>
+                    </div>
+                    <div id="c-ine-aval-prev"></div><div id="c-ine-aval-st"></div>
+                  </div>
+                </div>
+              </div>
+
             </div>
-            <div id="elim-contrato-box" style="display:none;margin-top:8px;padding:10px;background:#FCEBEB;border-radius:8px;border:1px solid #F7C1C1">
-              <div style="font-size:12px;color:#a32d2d;margin-bottom:8px"><i class="ti ti-alert-triangle"></i> Elimina el contrato e inquilino</div>
-              <button class="btn btn-danger btn-sm" onclick="eliminarContrato()"><i class="ti ti-trash"></i> Eliminar contrato e inquilino</button>
+
+            <!-- Botones generar siempre visibles -->
+            <div style="display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid #f0f0ee">
+              <button class="btn btn-docx" id="btn-gen-docx" onclick="genContrato('docx')" style="flex:1"><i class="ti ti-file-word"></i> Generar .docx</button>
+              <button class="btn btn-pdf" id="btn-gen-pdf" onclick="genContrato('pdf')" style="flex:1"><i class="ti ti-file-type-pdf"></i> Generar PDF</button>
             </div>
-            <div class="btn-group" style="margin-top:10px">
-              <button class="btn btn-docx" id="btn-gen-docx" onclick="genContrato('docx')"><i class="ti ti-file-word"></i> Generar .docx</button>
-              <button class="btn btn-pdf" id="btn-gen-pdf" onclick="genContrato('pdf')"><i class="ti ti-file-type-pdf"></i> Generar PDF</button>
-            </div>
-            <div id="contrato-gen-msg" style="margin-top:10px"></div>
+            <div id="contrato-gen-msg" style="margin-top:8px"></div>
           </div>
         </div>
+
         <div>
           <div class="card"><div class="card-header"><span class="card-title">Vista previa</span><span class="badge badge-gray" id="c-status">Sin datos</span></div><div class="preview-box" id="c-preview">Selecciona un inquilino o llena los datos.</div></div>
           <div class="card"><div class="card-title mb-8">Contratos generados</div><table class="tbl"><thead><tr><th>Inquilino</th><th>Depto</th><th>Formato</th><th>Fecha</th></tr></thead><tbody id="c-hist"><tr><td colspan="4" class="text-muted center">Sin contratos aún</td></tr></tbody></table></div>
@@ -232,33 +315,65 @@
     </div>
 
     <div id="page-mantenimiento" class="page">
-      <div class="page-header"><h2 class="page-title">Mantenimiento</h2><button class="btn btn-sm" onclick="toggleMantHist()"><i class="ti ti-history"></i> <span id="mant-hist-label">Ver historial</span></button></div>
-      <div id="mant-current">
-        <div class="card"><div class="card-header"><span class="card-title">Aires acondicionados — servicio anual</span><span class="text-muted" style="font-size:12px">Año en curso: 2026</span></div><table class="tbl"><thead><tr><th>Depto</th><th>2026</th><th>Estado</th></tr></thead><tbody id="aires-tbody"></tbody></table></div>
-        <div class="card"><div class="card-header"><span class="card-title">Lavadoras — servicio anual</span></div><table class="tbl"><thead><tr><th>Ubicación</th><th>2026</th><th>Estado</th></tr></thead><tbody id="lavadoras-tbody"></tbody></table></div>
-        <div class="card"><div class="card-title mb-12">Infraestructura</div><table class="tbl"><thead><tr><th>Tarea</th><th>Frecuencia</th><th>2026</th></tr></thead><tbody id="infra-tbody"></tbody></div>
+      <div class="page-header"><h2 class="page-title">Mantenimiento</h2></div>
+
+      <!-- Aires -->
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="ti ti-wind" style="margin-right:6px;color:#1D9E75"></i>Aires acondicionados</span><span class="text-muted" style="font-size:12px">Servicio anual · Agosto 2026</span></div>
+        <div id="aires-chips" style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 8px"></div>
+        <details id="aires-hist-details" style="margin-top:4px">
+          <summary style="cursor:pointer;font-size:12px;color:#6b6b6b;padding:4px 0">Ver historial</summary>
+          <div id="aires-hist-inner" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px"></div>
+        </details>
       </div>
-      <div id="mant-hist-panel" class="mant-hist-panel">
-        <div class="card"><div class="card-header"><span class="card-title">Historial — Aires acondicionados</span></div><table class="tbl"><thead><tr><th>Depto</th><th>2025</th><th>2026</th><th>2027</th><th>Último servicio</th></tr></thead><tbody id="aires-hist-tbody"></tbody></table></div>
-        <div class="card"><div class="card-header"><span class="card-title">Historial — Lavadoras</span></div><table class="tbl"><thead><tr><th>Ubicación</th><th>2025</th><th>2026</th><th>2027</th><th>Último servicio</th></tr></thead><tbody id="lavadoras-hist-tbody"></tbody></table></div>
-        <div class="card"><div class="card-title mb-12">Historial — Infraestructura</div><table class="tbl"><thead><tr><th>Tarea</th><th>Frecuencia</th><th>2025</th><th>2026</th><th>2027</th></tr></thead><tbody id="infra-hist-tbody"></tbody></div>
+
+      <!-- Lavadoras -->
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="ti ti-wash" style="margin-right:6px;color:#1D9E75"></i>Lavadoras</span><span class="text-muted" style="font-size:12px">Servicio anual · Agosto 2026</span></div>
+        <div id="lavadoras-list" style="display:flex;flex-direction:column;gap:8px;padding:4px 0 8px"></div>
+        <details id="lav-hist-details" style="margin-top:4px">
+          <summary style="cursor:pointer;font-size:12px;color:#6b6b6b;padding:4px 0">Ver historial</summary>
+          <div id="lav-hist-inner" style="margin-top:10px"></div>
+        </details>
       </div>
-      <div class="card accent-red">
-        <div class="card-title mb-8"><i class="ti ti-alert-triangle" style="color:#A32D2D;margin-right:6px"></i>Protocolo falta de agua</div>
-        <ol class="protocol-list"><li>Revisar bomba de entrada principal alimentadora</li><li>Revisar presión JAPAMA</li><li>Revisar pastilla en azotea para bombas de tinacos (en apagones)</li></ol>
-        <div class="info-note amber-note"><i class="ti ti-device-mobile"></i> <strong>Recordatorio Telcel:</strong> depositar $20/mes para conservar el número activo</div>
+
+      <!-- Infraestructura -->
+      <div class="card">
+        <div class="card-header"><span class="card-title"><i class="ti ti-tool" style="margin-right:6px;color:#1D9E75"></i>Infraestructura</span></div>
+        <div id="infra-list" style="display:flex;flex-direction:column;gap:0"></div>
+        <details id="infra-hist-details" style="margin-top:8px">
+          <summary style="cursor:pointer;font-size:12px;color:#6b6b6b;padding:4px 0">Ver historial</summary>
+          <div id="infra-hist-inner" style="margin-top:10px"></div>
+        </details>
       </div>
+
+      <div style="text-align:center;padding:4px 0 8px">
+        <button class="btn btn-sm" onclick="openModal('modal-protocolo-agua')" style="color:#A32D2D;border-color:#f0c0c0"><i class="ti ti-alert-triangle"></i> Ver protocolo falta de agua</button>
+      </div>
+
     </div>
 
     <div id="page-pagos" class="page">
       <div class="page-header"><h2 class="page-title">Control de pagos</h2></div>
       <div class="card"><div class="card-header"><span class="card-title" id="pagos-mes-label">Junio 2026</span></div>
-        <table class="tbl"><thead><tr><th>Depto</th><th>Inquilino</th><th>Monto</th><th>Día límite</th><th>Forma</th><th>Estado</th><th></th></tr></thead>
+        <table class="tbl"><thead><tr><th>Depto</th><th>Inquilino</th><th class="hide-mobile">Monto</th><th class="hide-mobile">Día límite</th><th class="hide-mobile">Forma</th><th>Estado</th><th></th></tr></thead>
         <tbody id="pagos-tbody"></tbody></table>
       </div>
     </div>
 
   </main>
+</div>
+
+<!-- MODAL PROTOCOLO AGUA -->
+<div class="modal-bg" id="modal-protocolo-agua">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header"><div class="modal-title" style="color:#A32D2D"><i class="ti ti-alert-triangle"></i> Protocolo falta de agua</div><button class="btn-icon" onclick="closeModal('modal-protocolo-agua')"><i class="ti ti-x"></i></button></div>
+    <ol class="protocol-list" style="margin:16px 0 8px;padding-left:20px">
+      <li style="padding:8px 0;border-bottom:1px solid #f0f0ee">Revisar bomba de entrada principal alimentadora</li>
+      <li style="padding:8px 0;border-bottom:1px solid #f0f0ee">Revisar presión JAPAMA</li>
+      <li style="padding:8px 0">Revisar pastilla en azotea para bombas de tinacos (en apagones)</li>
+    </ol>
+  </div>
 </div>
 
 <!-- MODAL EDITAR INQUILINO -->
@@ -312,14 +427,55 @@
   <div class="modal modal-lg">
     <div class="modal-header">
       <div class="flex gap-8"><div id="vi-av" class="avatar-lg av-teal"></div><div><div class="modal-title" id="vi-nom"></div><div class="text-muted" id="vi-sub"></div></div></div>
-      <div class="flex gap-8"><button class="btn btn-sm" id="vi-edit"><i class="ti ti-edit"></i> Editar</button><button class="btn btn-sm btn-primary" onclick="irAContrato()"><i class="ti ti-file-text"></i> Contrato</button><button class="btn-icon" onclick="closeModal('modal-ver')"><i class="ti ti-x"></i></button></div>
+      <div class="flex gap-8"><button class="btn btn-sm" id="vi-edit">✎ Editar</button><button class="btn btn-sm btn-primary" onclick="irAContrato()"><i class="ti ti-file-text"></i> Contrato</button><button class="btn-icon" onclick="closeModal('modal-ver')"><i class="ti ti-x"></i></button></div>
     </div>
-    <div class="tabs" id="vi-tabs-nav"><button class="tab active" onclick="swTab('vt-info','vi-tabs',this)">Información</button><button class="tab" onclick="swTab('vt-aval','vi-tabs',this)">Aval</button><button class="tab" onclick="swTab('vt-hist','vi-tabs',this)">Historial pagos</button><button class="tab" onclick="swTab('vt-ine','vi-tabs',this)">INE</button></div>
+    <div class="tabs" id="vi-tabs-nav"><button class="tab active" onclick="swTab('vt-info','vi-tabs',this)">Información</button><button class="tab" onclick="swTab('vt-aval','vi-tabs',this)">Aval</button><button class="tab" onclick="swTab('vt-hist','vi-tabs',this)">Pagos</button><button class="tab" onclick="swTab('vt-ine','vi-tabs',this)">INE</button><button class="tab" onclick="swTab('vt-bita','vi-tabs',this)">Bitácora</button></div>
     <div id="vi-tabs">
       <div id="vt-info" class="tab-panel active"><div id="vi-info"></div></div>
       <div id="vt-aval" class="tab-panel"><div id="vi-aval"></div></div>
       <div id="vt-hist" class="tab-panel"><div id="vi-hist"></div></div>
       <div id="vt-ine" class="tab-panel"><div class="ine-grid" id="vi-ine"></div></div>
+      <div id="vt-bita" class="tab-panel">
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input type="text" id="bitacora-inp" placeholder="Ej. Reportó fuga en baño, se atendió el 5 jun" style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter')agregarBitacora()">
+          <button class="btn btn-primary btn-sm" onclick="agregarBitacora()"><i class="ti ti-plus"></i> Agregar</button>
+        </div>
+        <div id="bitacora-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SALIDA INQUILINO -->
+<div class="modal-bg" id="modal-salida">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title"><i class="ti ti-door-exit" style="color:#a32d2d;margin-right:6px"></i>Salida de inquilino</div></div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:13px;color:#6b6b6b;margin-bottom:4px">Inquilino</div>
+      <div style="font-weight:600;font-size:15px" id="salida-nombre">—</div>
+      <div style="font-size:13px;color:#6b6b6b;margin-top:8px;margin-bottom:4px">Depósito en garantía</div>
+      <div style="font-weight:700;font-size:18px;color:#1D9E75" id="salida-deposito">$0</div>
+    </div>
+    <div class="form-group">
+      <label>¿Qué pasa con el depósito?</label>
+      <select id="salida-dep-accion" onchange="salidaToggleDano()">
+        <option value="devuelto">Devuelto completo al inquilino</option>
+        <option value="parcial">Aplicado parcialmente a daños</option>
+        <option value="retenido">Retenido completo por daños</option>
+        <option value="sin-deposito">No había depósito</option>
+      </select>
+    </div>
+    <div id="salida-dano-box" style="display:none">
+      <div class="form-row">
+        <div class="form-group"><label>Monto aplicado a daños ($)</label><input type="number" id="salida-dano-monto" placeholder="0"></div>
+        <div class="form-group"><label>Devuelto al inquilino ($)</label><input type="number" id="salida-dano-devuelto" readonly></div>
+      </div>
+      <div class="form-group"><label>Descripción del daño</label><input type="text" id="salida-dano-desc" placeholder="Ej. Puerta rota, limpieza profunda"></div>
+    </div>
+    <div class="form-group"><label>Notas de salida</label><textarea id="salida-notas" placeholder="Ej. Salió en buenas condiciones, entregó llaves"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-salida')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarSalida()"><i class="ti ti-check"></i> Confirmar salida</button>
     </div>
   </div>
 </div>

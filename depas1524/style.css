@@ -228,4 +228,5 @@ nav{flex:1;padding:.5rem 0}
   .hist-grid{grid-template-columns:repeat(6,1fr)}
   .tbl th:nth-child(n+4),.tbl td:nth-child(n+4){display:none}
   .tbl th:nth-child(5),.tbl td:nth-child(5),.tbl th:nth-child(6),.tbl td:nth-child(6){display:table-cell}
+  .hide-mobile{display:none!important}
 }
