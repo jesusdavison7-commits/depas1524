@@ -1,0 +1,8 @@
+{
+  "name": "depas1524",
+  "version": "1.0.0",
+  "description": "Depas 1524 Admin App",
+  "dependencies": {
+    "docx": "^8.5.0"
+  }
+}
