@@ -49,7 +49,7 @@
   <main class="main" id="main">
 
     <div id="page-dashboard" class="page active">
-      <div class="page-header"><h2 class="page-title">Dashboard</h2><span id="dash-mes" class="month-badge"></span></div>
+      <div class="page-header"><h2 class="page-title">Dashboard</h2><span id="dash-mes" class="month-badge"></span><button class="btn btn-sm" onclick="recargarDatos()" title="Sincronizar datos desde Firebase" style="margin-left:auto"><i class="ti ti-refresh"></i> Actualizar</button></div>
       <div id="dash-alertas"></div>
       <div class="metric-grid" id="dash-metrics"></div>
       <div class="card">
@@ -76,10 +76,7 @@
 
     <div id="page-servicios" class="page">
       <div class="page-header"><h2 class="page-title">Servicios</h2>
-        <select id="srv-mes-sel" class="select-sm" onchange="renderServicios()">
-          <option value="11">Junio 2026</option><option value="10">Mayo 2026</option>
-          <option value="9">Abril 2026</option><option value="8">Marzo 2026</option>
-        </select>
+        <select id="srv-mes-sel" class="select-sm" onchange="renderServicios()"></select>
       </div>
       <div id="cfe-alerta"></div>
       <div class="card" style="padding:0;overflow:hidden">

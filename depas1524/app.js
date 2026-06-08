@@ -175,16 +175,32 @@ function calcFinMes(mi) {
   return{cob:cob,mant:mant,limp:limp,internet:internet,agua:agua,cfe:cfe,cfePeriodo:srv.cfe&&srv.cfe.periodo||'',srvEdif:srvEdif,gastosMant:gastosMant,neto:neto,srvJ:srvJ,jesus:neto*0.25+srvJ,carlitos:neto*0.75};
 }
 
+// ── Toast de errores ───────────────────────────────────────────────────────
+function showToast(msg,tipo){
+  var t=document.getElementById('app-toast');
+  if(!t){t=document.createElement('div');t.id='app-toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999999;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,.18);transition:opacity .3s;pointer-events:none';document.body.appendChild(t);}
+  t.textContent=msg;
+  t.style.background=tipo==='error'?'#c0392b':'#1D9E75';
+  t.style.color='#fff';t.style.opacity='1';
+  clearTimeout(t._timer);t._timer=setTimeout(function(){t.style.opacity='0';},3500);
+}
+function safeSave(promise,label){
+  return promise.catch(function(e){
+    console.error('Error guardando '+(label||''),e);
+    showToast('⚠ Error al guardar'+(label?' ('+label+')':'')+'. Revisa tu conexión.',' error');
+  });
+}
+
 // ── Firebase helpers ───────────────────────────────────────────────────────
-function saveDepto(d) { return db.collection('deptos').doc(String(d.num)).set(d); }
-function delDepto(num) { return db.collection('deptos').doc(String(num)).delete(); }
-function savePago(num,mi,p) { return db.collection('pagos').doc(num+'_'+mi).set(Object.assign({deptoNum:num,mesIdx:mi},p)); }
-function deletePago(num,mi) { return db.collection('pagos').doc(num+'_'+mi).delete(); }
-function saveSrv(mi,data) { return db.collection('servicios').doc(String(mi)).set(data); }
-function saveCFE(list) { return db.collection('cfe').doc('historial').set({list:list}); }
-function saveMant() { return db.collection('config').doc('mantenimiento').set({state:MANT_STATE,notas:MANT_NOTAS}); }
-function saveMantNotas() { return db.collection('config').doc('mantenimiento').set({state:MANT_STATE,notas:MANT_NOTAS}); }
-function saveGastosMant() { return db.collection('config').doc('gastosMant').set({data:GASTOS_MANT}); }
+function saveDepto(d) { return safeSave(db.collection('deptos').doc(String(d.num)).set(d),'depto '+d.num); }
+function delDepto(num) { return safeSave(db.collection('deptos').doc(String(num)).delete(),'eliminar depto'); }
+function savePago(num,mi,p) { return safeSave(db.collection('pagos').doc(num+'_'+mi).set(Object.assign({deptoNum:num,mesIdx:mi},p)),'pago'); }
+function deletePago(num,mi) { return safeSave(db.collection('pagos').doc(num+'_'+mi).delete(),'eliminar pago'); }
+function saveSrv(mi,data) { return safeSave(db.collection('servicios').doc(String(mi)).set(data),'servicio'); }
+function saveCFE(list) { return safeSave(db.collection('cfe').doc('historial').set({list:list}),'CFE'); }
+function saveMant() { return safeSave(db.collection('config').doc('mantenimiento').set({state:MANT_STATE,notas:MANT_NOTAS}),'mantenimiento'); }
+function saveMantNotas() { return safeSave(db.collection('config').doc('mantenimiento').set({state:MANT_STATE,notas:MANT_NOTAS}),'notas'); }
+function saveGastosMant() { return safeSave(db.collection('config').doc('gastosMant').set({data:GASTOS_MANT}),'gastos'); }
 function agregarGastoMant(){
   var desc=document.getElementById('gm-desc').value.trim();
   var monto=parseFloat(document.getElementById('gm-monto').value)||0;
@@ -201,8 +217,8 @@ function eliminarGastoMant(idx){
   if(!confirm('¿Eliminar este gasto?'))return;
   GASTOS_MANT.splice(idx,1);saveGastosMant();renderServicios();renderFinanzas();
 }
-function saveFinHist() { return db.collection('config').doc('finHistorial').set({data:FIN_HIST,fondoInicial:FONDO_INICIAL,bolsaJesus:BOLSA_JESUS||0,bolsaCarlitos:BOLSA_CARLITOS||0,bolsaMant:BOLSA_MANT||0}); }
-function saveInqHist() { return db.collection('config').doc('inqHistorial').set({data:INQ_HIST}); }
+function saveFinHist() { return safeSave(db.collection('config').doc('finHistorial').set({data:FIN_HIST,fondoInicial:FONDO_INICIAL,bolsaJesus:BOLSA_JESUS||0,bolsaCarlitos:BOLSA_CARLITOS||0,bolsaMant:BOLSA_MANT||0}),'finanzas'); }
+function saveInqHist() { return safeSave(db.collection('config').doc('inqHistorial').set({data:INQ_HIST}),'historial'); }
 
 function initApp() {
   db.collection('deptos').get().then(function(snap) {
@@ -258,6 +274,8 @@ function loadRest() {
 
 // ── Nav ────────────────────────────────────────────────────────────────────
 function showPage(id,btn) {
+  // Recalcular mes actual cada vez que navegas (por si la app lleva horas abierta)
+  var _n=new Date(); MEX_MES=mesIdx(_n.getFullYear(),_n.getMonth());
   document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
   var pg=document.getElementById('page-'+id); if(pg)pg.classList.add('active');
@@ -426,6 +444,18 @@ function toggleHistPago(num,key) {
 // ── Servicios ──────────────────────────────────────────────────────────────
 function renderServicios() {
   var miEl=document.getElementById('srv-mes-sel'); if(!miEl)return;
+  // Rellenar opciones dinámicamente si el mes actual no está presente
+  var currentVal=parseInt(miEl.value);
+  if(isNaN(currentVal)||currentVal>MEX_MES||miEl.options.length===0||(miEl.options.length>0&&parseInt(miEl.options[0].value)!==MEX_MES)){
+    var prev=parseInt(miEl.value);
+    miEl.innerHTML='';
+    for(var ii=MEX_MES;ii>=0;ii--){
+      var opt=document.createElement('option');
+      opt.value=ii;opt.textContent=idxLabel(ii);
+      miEl.appendChild(opt);
+    }
+    miEl.value=(prev>=0&&prev<=MEX_MES)?prev:MEX_MES;
+  }
   var mi=parseInt(miEl.value); var srv=getSrv(mi);
   document.getElementById('cfe-alerta').innerHTML='';
   var cont=document.getElementById('srv-cards'); cont.innerHTML='';
@@ -809,13 +839,15 @@ function darDeAlta(){
   var isNew=VACIOS.indexOf(dep)>-1;
   var existing=DEPTOS.find(function(d){return d.num===dep;});
   var prevBitacora=(existing&&existing.bitacora)||[];
-  var ineInq=_tmpIneInq||(existing?existing.ineInqUrl||'':'');
-  var ineAval=_tmpIneAval||(existing?existing.ineAvalUrl||'':'');
-  _tmpIneInq='';_tmpIneAval='';
+  // URLs de INE: si ya había URL en Firestore se conserva; los archivos nuevos se suben a Storage después
+  var ineInq=existing?existing.ineInqUrl||'':'';
+  var ineAval=existing?existing.ineAvalUrl||'':'';
   var obj={num:dep,nombre:nom,renta:renta,diaPago:dia,contrato:contrato,finDate:finDate,finStr:finStr,deposito:true,tel:document.getElementById('c-tel').value,email:document.getElementById('c-email').value,curp:'',nacimiento:document.getElementById('c-nac').value,ocupacion:'',domicilio:document.getElementById('c-dom').value,notas:'',ineInqUrl:ineInq,ineAvalUrl:ineAval,bitacora:prevBitacora,aval:{nombre:document.getElementById('c-aval').value,parentesco:'',tel:'',email:'',curp:'',calle:'',colonia:'',ciudad:'',estado:'',cp:'',propiedad:'Sí',propDir:'',notas:''}};
   if(existing){DEPTOS[DEPTOS.indexOf(existing)]=obj;}else{DEPTOS.push(obj);DEPTOS.sort(function(a,b){return a.num-b.num;});}
   var vi=VACIOS.indexOf(dep);if(vi>-1)VACIOS.splice(vi,1);if(!PAGOS[dep])PAGOS[dep]={};
   saveDepto(obj);
+  // Subir fotos INE pendientes a Storage (en background)
+  subirINEContratoPendiente(dep,function(){renderAll();});
   // Primer mes + depósito auto-registrado (solo en alta nueva, no renovaciones)
   if(isNew&&ini){
     var iniD=new Date(ini+'T12:00:00');
@@ -1107,20 +1139,26 @@ function descargarINE(tipo,idx){
 function borrarINE(tipo,idx){
   if(!confirm('¿Borrar foto del INE?'))return;
   var d=DEPTOS[idx];if(!d)return;
-  if(tipo==='inq')d.ineInqUrl='';else d.ineAvalUrl='';
-  saveDepto(d);
-  document.getElementById('vi-ine').innerHTML=_inePanel('inq',d,idx)+_inePanel('aval',d,idx);
+  borrarINEDeStorage(d.num,tipo,function(){
+    document.getElementById('vi-ine').innerHTML=_inePanel('inq',d,idx)+_inePanel('aval',d,idx);
+    showToast('Foto INE eliminada','ok');
+  });
 }
 function subirINEVer(event,tipo,idx){
   var file=event.target.files[0];if(!file)return;
   var d=DEPTOS[idx];if(!d)return;
-  var reader=new FileReader();
-  reader.onload=function(){
-    if(tipo==='inq')d.ineInqUrl=reader.result;else d.ineAvalUrl=reader.result;
-    saveDepto(d);
-    document.getElementById('vi-ine').innerHTML=_inePanel('inq',d,idx)+_inePanel('aval',d,idx);
-  };
-  reader.readAsDataURL(file);
+  var viIne=document.getElementById('vi-ine');
+  if(viIne)viIne.innerHTML='<div style="padding:16px;color:#6b6b6b;font-size:13px"><i class="ti ti-loader-2"></i> Subiendo foto…</div>';
+  subirINEAStorage(file,tipo,d.num,
+    function(){
+      document.getElementById('vi-ine').innerHTML=_inePanel('inq',d,idx)+_inePanel('aval',d,idx);
+      showToast('✓ Foto INE guardada','ok');
+    },
+    function(){
+      document.getElementById('vi-ine').innerHTML=_inePanel('inq',d,idx)+_inePanel('aval',d,idx);
+      showToast('Error al subir INE','error');
+    }
+  );
 }
 function verInq(idx){
   var d=DEPTOS[idx];
@@ -1166,59 +1204,92 @@ function descargarINEEdit(tipo){
 function borrarINEEdit(tipo){
   if(!confirm('¿Borrar foto del INE?'))return;
   var d=DEPTOS[editIdx];if(!d)return;
-  if(tipo==='inq')d.ineInqUrl='';else d.ineAvalUrl='';
-  saveDepto(d);_inePanelEditArea(tipo);
+  borrarINEDeStorage(d.num,tipo,function(){_inePanelEditArea(tipo);showToast('Foto INE eliminada','ok');});
 }
 
-// ── INE — solo subir foto, sin IA ──────────────────────────────────────────
-function subirINEStorage(file,tipo,deptoNum){
-  var stId='ine-'+tipo+'-st';
-  var stEl=document.getElementById(stId);
-  var reader=new FileReader();
-  reader.onload=function(){
-    var base64=reader.result; // data:image/...;base64,...
+// ── INE — Firebase Storage ────────────────────────────────────────────────
+var storage = firebase.storage();
+
+function _ineStoragePath(deptoNum,tipo){
+  return 'ine/depto'+deptoNum+'_'+tipo+'.jpg';
+}
+
+// Sube a Storage y guarda la URL pública en Firestore
+function subirINEAStorage(file, tipo, deptoNum, onOk, onErr){
+  var path=_ineStoragePath(deptoNum,tipo);
+  var ref=storage.ref().child(path);
+  ref.put(file).then(function(){
+    return ref.getDownloadURL();
+  }).then(function(url){
     var d=DEPTOS.find(function(x){return x.num===deptoNum;});
     if(!d)return;
-    if(tipo==='inq')d.ineInqUrl=base64;
-    else d.ineAvalUrl=base64;
-    saveDepto(d);
-    if(stEl)stEl.innerHTML='<div style="padding:4px 8px;background:#E1F5EE;border-radius:6px;font-size:11px;color:#085041"><i class="ti ti-check"></i> Imagen guardada</div>';
-  };
-  reader.onerror=function(){
-    if(stEl)stEl.innerHTML='<div style="padding:4px 8px;background:#FAEEDA;border-radius:6px;font-size:11px;color:#854F0B">Error al guardar imagen</div>';
-  };
-  reader.readAsDataURL(file);
+    if(tipo==='inq')d.ineInqUrl=url;else d.ineAvalUrl=url;
+    return saveDepto(d).then(function(){if(onOk)onOk(url);});
+  }).catch(function(e){
+    console.error('Error subiendo INE:',e);
+    if(onErr)onErr(e);
+  });
 }
+
+// Borra de Storage + limpia URL en Firestore
+function borrarINEDeStorage(deptoNum,tipo,onOk){
+  var path=_ineStoragePath(deptoNum,tipo);
+  storage.ref().child(path).delete().catch(function(){/* no existía, ok */}).finally(function(){
+    var d=DEPTOS.find(function(x){return x.num===deptoNum;});
+    if(!d)return;
+    if(tipo==='inq')d.ineInqUrl='';else d.ineAvalUrl='';
+    saveDepto(d);if(onOk)onOk();
+  });
+}
+
+// Modal Editar — leer INE
 function leerINE(event,tipo){
   var file=event.target.files[0];if(!file)return;
   var stEl=document.getElementById('ine-'+tipo+'-st');
-  if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#6b6b6b;padding:4px 0">Guardando…</div>';
-  var reader=new FileReader();
-  reader.onload=function(){
-    var d=DEPTOS[editIdx];if(!d)return;
-    if(tipo==='inq')d.ineInqUrl=reader.result;else d.ineAvalUrl=reader.result;
-    saveDepto(d);
-    _inePanelEditArea(tipo);
-    if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#085041;padding:4px 0">✓ Guardado</div>';
-  };
-  reader.readAsDataURL(file);
+  var d=DEPTOS[editIdx];if(!d)return;
+  if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#6b6b6b;padding:4px 0"><i class="ti ti-loader-2"></i> Subiendo…</div>';
+  // Preview inmediato con URL local
+  var localUrl=URL.createObjectURL(file);
+  var prevEl=document.getElementById('ine-'+tipo+'-prev');
+  if(prevEl)prevEl.innerHTML='<img src="'+localUrl+'" class="ine-preview" style="margin-bottom:8px"><div style="font-size:11px;color:#6b6b6b">Subiendo…</div>';
+  subirINEAStorage(file,tipo,d.num,
+    function(url){
+      _inePanelEditArea(tipo);
+      if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#085041;padding:4px 0">✓ Guardado</div>';
+      showToast('✓ Foto INE guardada','ok');
+    },
+    function(e){
+      if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#c0392b;padding:4px 0">⚠ Error al subir. Intenta de nuevo.</div>';
+      showToast('Error al subir INE. Verifica tu conexión.','error');
+    }
+  );
 }
+
+// Modal Contrato — leer INE (guarda a Storage al dar de alta)
 var _tmpIneInq='', _tmpIneAval='';
+var _tmpIneFileInq=null, _tmpIneFileAval=null;
 function leerINEContrato(event,tipo){
   var file=event.target.files[0];if(!file)return;
+  if(tipo==='inq'){_tmpIneFileInq=file;_tmpIneInq='pending';}
+  else{_tmpIneFileAval=file;_tmpIneAval='pending';}
   var prevId=tipo==='inq'?'c-ine-inq-prev':'c-ine-aval-prev';
   var url=URL.createObjectURL(file),prevEl=document.getElementById(prevId);
   if(prevEl)prevEl.innerHTML='<img src="'+url+'" class="ine-preview" style="width:100%;max-height:100px;object-fit:cover;border-radius:8px;margin-top:6px">';
-  // Guardar base64 temporalmente hasta que se dé de alta
-  var reader=new FileReader();
-  reader.onload=function(){
-    if(tipo==='inq')_tmpIneInq=reader.result;
-    else _tmpIneAval=reader.result;
-    var stId='c-ine-'+tipo+'-st';
-    var stEl=document.getElementById(stId);
-    if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#085041;padding:2px 0">✓ Lista para guardar</div>';
-  };
-  reader.readAsDataURL(file);
+  var stEl=document.getElementById('c-ine-'+tipo+'-st');
+  if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#085041;padding:2px 0">✓ Lista para guardar al dar de alta</div>';
+}
+
+// Sube INE del contrato después de guardar el depto (tiene num asignado)
+function subirINEContratoPendiente(deptoNum, onDone){
+  var pendientes=[];
+  if(_tmpIneFileInq)pendientes.push({file:_tmpIneFileInq,tipo:'inq'});
+  if(_tmpIneFileAval)pendientes.push({file:_tmpIneFileAval,tipo:'aval'});
+  _tmpIneInq='';_tmpIneAval='';_tmpIneFileInq=null;_tmpIneFileAval=null;
+  if(!pendientes.length){if(onDone)onDone();return;}
+  var count=0;
+  pendientes.forEach(function(p){
+    subirINEAStorage(p.file,p.tipo,deptoNum,function(){count++;if(count===pendientes.length&&onDone)onDone();},function(){count++;if(count===pendientes.length&&onDone)onDone();});
+  });
 }
 
 function toggleBolsaEdit(quien,show){
@@ -1298,6 +1369,24 @@ function recalcularBolsas(){
   }
   BOLSA_JESUS=Math.round(j);BOLSA_CARLITOS=Math.round(c);
   saveFinHist();renderFinanzas();
+}
+
+// ── Recargar datos desde Firebase ─────────────────────────────────────────
+function recargarDatos(){
+  var btn=document.querySelector('[onclick="recargarDatos()"]');
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> Cargando…';}
+  var _n=new Date();MEX_MES=mesIdx(_n.getFullYear(),_n.getMonth());
+  db.collection('deptos').get().then(function(snap){
+    DEPTOS=[];snap.forEach(function(d){DEPTOS.push(d.data());});DEPTOS.sort(function(a,b){return a.num-b.num;});
+    VACIOS=[1,2,3,4,5,6,7,8].filter(function(n){return!DEPTOS.find(function(d){return d.num===n;});});
+    return loadRest();
+  }).then(function(){
+    showToast('✓ Datos actualizados','ok');
+  }).catch(function(e){
+    showToast('Error al actualizar. Revisa tu conexión.','error');
+  }).finally(function(){
+    if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-refresh"></i> Actualizar';}
+  });
 }
 
 // ── Render all ─────────────────────────────────────────────────────────────
