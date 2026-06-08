@@ -1338,6 +1338,35 @@ function limpiarContrato(){
   checkAltaBtn();prevContrato();
 }
 
+// ── Limpieza INE base64 pesado ─────────────────────────────────────────────
+// Llama desde la consola del navegador: limpiarINEPesado()
+function limpiarINEPesado(){
+  var LIMITE_KB=200; // si pesa más de 200KB se considera "sin comprimir" y se borra
+  var borrados=0,revisados=0;
+  var promesas=DEPTOS.map(function(d){
+    revisados++;
+    var cambio=false;
+    // base64 largo = data:image/...;base64,XXXX — cada char ~0.75 bytes
+    if(d.ineInqUrl&&d.ineInqUrl.startsWith('data:')&&d.ineInqUrl.length*0.75/1024>LIMITE_KB){
+      console.log('Depto '+d.num+' INE inquilino: '+(Math.round(d.ineInqUrl.length*0.75/1024))+'KB → borrado');
+      d.ineInqUrl='';cambio=true;borrados++;
+    }
+    if(d.ineAvalUrl&&d.ineAvalUrl.startsWith('data:')&&d.ineAvalUrl.length*0.75/1024>LIMITE_KB){
+      console.log('Depto '+d.num+' INE aval: '+(Math.round(d.ineAvalUrl.length*0.75/1024))+'KB → borrado');
+      d.ineAvalUrl='';cambio=true;borrados++;
+    }
+    if(cambio)return db.collection('deptos').doc(String(d.num)).set(d);
+    return Promise.resolve();
+  });
+  Promise.all(promesas).then(function(){
+    var msg='Revisados: '+revisados+' deptos. Fotos pesadas borradas: '+borrados+'.';
+    if(borrados===0)msg+=' Todo estaba limpio.';
+    console.log('✓ '+msg);
+    alert('✓ '+msg+(borrados>0?'\nVuelve a subir las fotos INE desde la app (ahora se comprimirán).':''));
+    renderAll();
+  }).catch(function(e){console.error('Error en limpieza:',e);alert('Error: '+e.message);});
+}
+
 // ── Bitácora ───────────────────────────────────────────────────────────────
 var _bitacoraIdx=null;
 function agregarBitacora(){
