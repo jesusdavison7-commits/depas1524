@@ -1138,6 +1138,9 @@ function leerINEContrato(event,tipo){
   var prevId=tipo==='inq'?'c-ine-inq-prev':'c-ine-aval-prev';
   var url=URL.createObjectURL(file),prevEl=document.getElementById(prevId);
   if(prevEl)prevEl.innerHTML='<img src="'+url+'" class="ine-preview" style="width:100%;max-height:100px;object-fit:cover;border-radius:8px;margin-top:6px">';
+  // Subir a Storage usando el depto del formulario
+  var deptoNum=parseInt(document.getElementById('c-dep')?document.getElementById('c-dep').value:0)||0;
+  if(deptoNum)subirINEStorage(file,tipo,deptoNum);
 }
 
 function toggleBolsaEdit(quien,show){
