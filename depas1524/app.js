@@ -1111,7 +1111,8 @@ function subirINEStorage(file,tipo,deptoNum){
   ref.put(file).then(function(){
     return ref.getDownloadURL();
   }).then(function(url){
-    var d=DEPTOS[editIdx];
+    // Buscar el depto por número (funciona tanto en edición como en alta reciente)
+    var d=DEPTOS.find(function(x){return x.num===deptoNum;});
     if(!d)return;
     if(tipo==='inq')d.ineInqUrl=url;
     else d.ineAvalUrl=url;
