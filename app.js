@@ -181,9 +181,11 @@ function calcFinMes(mi) {
   var subtotal=Math.max(0,cob-limp-srvEdif-gastosMant);
   var mant=subtotal*0.10;
   var neto=Math.max(0,subtotal-mant);
-  // srvJ (Pinos + celular) se suma DESPUÉS del reparto — es reembolso solo para Jesús, no afecta la parte de Carlitos
+  // srvJ (Pinos + celular) = gastos de Carlitos que Jesús adelanta
+  // Se descuentan de la parte de Carlitos y se suman a la de Jesús
   var jesusBase=neto*0.25;
-  return{cob:cob,mant:mant,limp:limp,internet:internet,agua:agua,cfe:cfe,cfePeriodo:srv.cfe&&srv.cfe.periodo||'',srvEdif:srvEdif,gastosMant:gastosMant,neto:neto,srvJ:srvJ,jesus:jesusBase+srvJ,carlitos:neto*0.75};
+  var carlitosBase=neto*0.75;
+  return{cob:cob,mant:mant,limp:limp,internet:internet,agua:agua,cfe:cfe,cfePeriodo:srv.cfe&&srv.cfe.periodo||'',srvEdif:srvEdif,gastosMant:gastosMant,neto:neto,srvJ:srvJ,jesus:jesusBase+srvJ,carlitos:Math.max(0,carlitosBase-srvJ)};
 }
 
 // ── Toast de errores ───────────────────────────────────────────────────────
@@ -575,7 +577,8 @@ function renderFinanzas(){
   if(gastosLines){gastosLines.innerHTML=gastosMes.map(function(g){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;color:#6b6b6b;border-top:1px solid #ececea"><span>'+g.desc+'</span><span style="color:#c0392b;font-weight:500">-'+fmt(g.monto)+'</span></div>';}).join('');}
   // Bolsa mantenimiento: valor manual controlado por el usuario
   setT('bolsa-jesus-val',fmt(BOLSA_JESUS));setT('bolsa-carlitos-val',fmt(BOLSA_CARLITOS));setT('bolsa-mant-val',fmt(BOLSA_MANT));
-  setT('f-jesus-det','25% neto ('+fmt(f.neto*0.25)+') + reembolso pinos '+fmt(srv.internetPinos.monto)+' + celular '+fmt(srv.celular?srv.celular.monto:0));
+  setT('f-jesus-det','25% neto ('+fmt(f.neto*0.25)+') + cobro a Carlitos: pinos '+fmt(srv.internetPinos.monto)+' + celular '+fmt(srv.celular?srv.celular.monto:0));
+  setT('f-carlitos-det','75% neto ('+fmt(f.neto*0.75)+') − pinos '+fmt(srv.internetPinos.monto)+' − celular '+fmt(srv.celular?srv.celular.monto:0));
   var fh=FIN_HIST[mi]||{};
   var btnJ=document.getElementById('btn-transfer-jesus');var lblJ=document.getElementById('lbl-transfer-jesus');
   var btnC=document.getElementById('btn-transfer-carlitos');var lblC=document.getElementById('lbl-transfer-carlitos');
