@@ -1100,29 +1100,7 @@ function verInq(idx){
   resetTabsG('vi-tabs');openModal('modal-ver');
 }
 
-// ── INE Reader ─────────────────────────────────────────────────────────────
-function leerINEBase(file,tipo,previewId,statusId,onInq,onAval){
-  var url=URL.createObjectURL(file);
-  document.getElementById(previewId).innerHTML='<img src="'+url+'" class="ine-preview">';
-  document.getElementById(statusId).innerHTML='<div style="font-size:11px;color:#6b6b6b;display:flex;align-items:center;gap:4px"><div class="loading-dots"><span></span><span></span><span></span></div> Analizando con IA…</div>';
-  var reader=new FileReader();
-  reader.onload=function(){
-    var b64=reader.result.split(',')[1];
-    var apiKey=localStorage.getItem('claude_api_key')||'';
-    if(!apiKey){apiKey=prompt('Ingresa tu API key de Claude (se guarda solo en este navegador):');if(apiKey)localStorage.setItem('claude_api_key',apiKey.trim());}
-    if(!apiKey){document.getElementById(statusId).innerHTML='<div style="font-size:11px;color:#c0392b">API key requerida.</div>';return;}
-    fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-opus-4-5',max_tokens:500,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:b64}},{type:'text',text:'Extrae datos del INE mexicano. Responde SOLO JSON sin backticks: {"nombre_completo":"","curp":"","fecha_nacimiento":"YYYY-MM-DD","domicilio_calle":"","domicilio_colonia":"","domicilio_ciudad":"","domicilio_estado":"","domicilio_cp":""}'}]}]})})
-    .then(function(r){return r.json();}).then(function(data){
-      var txt=data.content.map(function(c){return c.text||'';}).join('').trim();
-      var p;try{p=JSON.parse(txt.replace(/```json|```/g,'').trim());}catch(e){p=null;}
-      if(p&&p.nombre_completo){
-        if(tipo==='inq'&&onInq)onInq(p);if(tipo==='aval'&&onAval)onAval(p);
-        document.getElementById(statusId).innerHTML='<div style="padding:4px 8px;background:#E1F5EE;border-radius:6px;font-size:11px;color:#085041"><i class="ti ti-check"></i> Datos extraídos</div>';
-      }else{document.getElementById(statusId).innerHTML='<div style="padding:4px 8px;background:#FAEEDA;border-radius:6px;font-size:11px;color:#854F0B">No se pudo leer. Ingresa manualmente.</div>';}
-    }).catch(function(){document.getElementById(statusId).innerHTML='<div style="padding:4px 8px;background:#FAEEDA;border-radius:6px;font-size:11px;color:#854F0B">Error. Ingresa manualmente.</div>';});
-  };
-  reader.readAsDataURL(file);
-}
+// ── INE — solo subir foto, sin IA ──────────────────────────────────────────
 function subirINEStorage(file,tipo,deptoNum){
   var storage=firebase.storage();
   var ext=file.name.split('.').pop()||'jpg';
@@ -1146,21 +1124,16 @@ function subirINEStorage(file,tipo,deptoNum){
 function leerINE(event,tipo){
   var file=event.target.files[0];if(!file)return;
   var deptoNum=DEPTOS[editIdx]?DEPTOS[editIdx].num:'x';
+  var url=URL.createObjectURL(file);
+  var prevEl=document.getElementById('ine-'+tipo+'-prev');
+  if(prevEl)prevEl.innerHTML='<img src="'+url+'" class="ine-preview">';
   subirINEStorage(file,tipo,deptoNum);
-  leerINEBase(file,tipo,'ine-'+tipo+'-prev','ine-'+tipo+'-st',
-    function(p){if(p.nombre_completo)document.getElementById('f-nombre').value=p.nombre_completo;if(p.curp)document.getElementById('f-curp').value=p.curp;if(p.fecha_nacimiento)document.getElementById('f-nac').value=p.fecha_nacimiento;if(p.domicilio_calle)document.getElementById('f-dom').value=[p.domicilio_calle,p.domicilio_colonia,p.domicilio_ciudad,p.domicilio_estado].filter(Boolean).join(', ');},
-    function(p){if(p.nombre_completo)document.getElementById('a-nombre').value=p.nombre_completo;if(p.curp)document.getElementById('a-curp').value=p.curp;if(p.domicilio_calle)document.getElementById('a-calle').value=p.domicilio_calle;if(p.domicilio_colonia)document.getElementById('a-col').value=p.domicilio_colonia;if(p.domicilio_ciudad)document.getElementById('a-ciudad').value=p.domicilio_ciudad;if(p.domicilio_estado)document.getElementById('a-estado').value=p.domicilio_estado;if(p.domicilio_cp)document.getElementById('a-cp').value=p.domicilio_cp;}
-  );
 }
 function leerINEContrato(event,tipo){
   var file=event.target.files[0];if(!file)return;
-  var prevId=tipo==='inq'?'c-ine-inq-prev':'c-ine-aval-prev',stId='c-ine-'+tipo+'-st';
+  var prevId=tipo==='inq'?'c-ine-inq-prev':'c-ine-aval-prev';
   var url=URL.createObjectURL(file),prevEl=document.getElementById(prevId);
   if(prevEl)prevEl.innerHTML='<img src="'+url+'" class="ine-preview" style="width:100%;max-height:100px;object-fit:cover;border-radius:8px;margin-top:6px">';
-  leerINEBase(file,tipo,prevId,stId,
-    function(p){if(p.nombre_completo){document.getElementById('c-nombre').value=p.nombre_completo;checkAltaBtn();}if(p.fecha_nacimiento)document.getElementById('c-nac').value=p.fecha_nacimiento;if(p.domicilio_calle)document.getElementById('c-dom').value=[p.domicilio_calle,p.domicilio_colonia,p.domicilio_ciudad,p.domicilio_estado].filter(Boolean).join(', ');prevContrato();},
-    function(p){if(p.nombre_completo){document.getElementById('c-aval').value=p.nombre_completo;prevContrato();}}
-  );
 }
 
 function toggleBolsaEdit(quien,show){
