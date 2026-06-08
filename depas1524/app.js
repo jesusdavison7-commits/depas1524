@@ -1102,25 +1102,22 @@ function verInq(idx){
 
 // ── INE — solo subir foto, sin IA ──────────────────────────────────────────
 function subirINEStorage(file,tipo,deptoNum){
-  var storage=firebase.storage();
-  var ext=file.name.split('.').pop()||'jpg';
-  var ref=storage.ref('ines/depto'+deptoNum+'-'+tipo+'.'+ext);
   var stId='ine-'+tipo+'-st';
   var stEl=document.getElementById(stId);
-  if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#6b6b6b;display:flex;align-items:center;gap:4px"><div class="loading-dots"><span></span><span></span><span></span></div> Subiendo imagen…</div>';
-  ref.put(file).then(function(){
-    return ref.getDownloadURL();
-  }).then(function(url){
-    // Buscar el depto por número (funciona tanto en edición como en alta reciente)
+  var reader=new FileReader();
+  reader.onload=function(){
+    var base64=reader.result; // data:image/...;base64,...
     var d=DEPTOS.find(function(x){return x.num===deptoNum;});
     if(!d)return;
-    if(tipo==='inq')d.ineInqUrl=url;
-    else d.ineAvalUrl=url;
+    if(tipo==='inq')d.ineInqUrl=base64;
+    else d.ineAvalUrl=base64;
     saveDepto(d);
-    if(stEl)stEl.innerHTML='<div style="padding:4px 8px;background:#E1F5EE;border-radius:6px;font-size:11px;color:#085041"><i class="ti ti-check"></i> Imagen guardada en la nube</div>';
-  }).catch(function(err){
-    if(stEl)stEl.innerHTML='<div style="padding:4px 8px;background:#FAEEDA;border-radius:6px;font-size:11px;color:#854F0B">Error al subir imagen: '+err.message+'</div>';
-  });
+    if(stEl)stEl.innerHTML='<div style="padding:4px 8px;background:#E1F5EE;border-radius:6px;font-size:11px;color:#085041"><i class="ti ti-check"></i> Imagen guardada</div>';
+  };
+  reader.onerror=function(){
+    if(stEl)stEl.innerHTML='<div style="padding:4px 8px;background:#FAEEDA;border-radius:6px;font-size:11px;color:#854F0B">Error al guardar imagen</div>';
+  };
+  reader.readAsDataURL(file);
 }
 function leerINE(event,tipo){
   var file=event.target.files[0];if(!file)return;
