@@ -63,6 +63,7 @@ var FIN_HIST = {};
 var FONDO_INICIAL = 0;
 var MANT_STATE = {};
 var GASTOS_MANT = [];
+var MANT_NOTAS = [];
 var MANT_HIST_OPEN = false;
 var FIN_HIST_OPEN = false;
 var editIdx = null;
@@ -181,7 +182,8 @@ function savePago(num,mi,p) { return db.collection('pagos').doc(num+'_'+mi).set(
 function deletePago(num,mi) { return db.collection('pagos').doc(num+'_'+mi).delete(); }
 function saveSrv(mi,data) { return db.collection('servicios').doc(String(mi)).set(data); }
 function saveCFE(list) { return db.collection('cfe').doc('historial').set({list:list}); }
-function saveMant() { return db.collection('config').doc('mantenimiento').set({state:MANT_STATE}); }
+function saveMant() { return db.collection('config').doc('mantenimiento').set({state:MANT_STATE,notas:MANT_NOTAS}); }
+function saveMantNotas() { return db.collection('config').doc('mantenimiento').set({state:MANT_STATE,notas:MANT_NOTAS}); }
 function saveGastosMant() { return db.collection('config').doc('gastosMant').set({data:GASTOS_MANT}); }
 function agregarGastoMant(){
   var desc=document.getElementById('gm-desc').value.trim();
@@ -235,6 +237,7 @@ function loadRest() {
     return db.collection('config').doc('mantenimiento').get();
   }).then(function(snap){
     MANT_STATE=snap.exists?snap.data().state||{}:{};
+    MANT_NOTAS=snap.exists?snap.data().notas||[]:[];
     return db.collection('config').doc('finHistorial').get();
   }).then(function(snap){
     if(snap.exists){FIN_HIST=snap.data().data||{};FONDO_INICIAL=snap.data().fondoInicial||0;BOLSA_JESUS=snap.data().bolsaJesus||0;BOLSA_CARLITOS=snap.data().bolsaCarlitos||0;BOLSA_MANT=snap.data().bolsaMant||0;}
@@ -333,6 +336,7 @@ function renderDashboard() {
   if(!srv.limpieza.pagado)srvPend.push('Limpieza');if(!srv.internetPinos.pagado)srvPend.push('Internet Los Pinos');
   if(!srv.celular||!srv.celular.pagado)srvPend.push('Saldo celular');if(!srv.cfe||!srv.cfe.pagado)srvPend.push('CFE Luz');
   if(srvPend.length)al.innerHTML+='<div class="alert-banner alert-amber"><i class="ti ti-receipt" style="font-size:16px;flex-shrink:0"></i><div><strong>'+srvPend.length+' servicio'+(srvPend.length>1?'s':'')+' pendiente'+(srvPend.length>1?'s':'')+' de pago</strong><div style="font-size:12px;margin-top:2px">'+srvPend.join(' · ')+'</div></div><button class="btn btn-sm" style="margin-left:auto" onclick="showPage(\'servicios\',document.querySelectorAll(\'.nav-item\')[2])">Ver servicios</button></div>';
+  try{alertaCFEProximo();}catch(e){console.warn('alertaCFE:',e);}
 
   var hoy=new Date();var diaHoy=hoy.getDate(),mesHoy=hoy.getMonth(),anioHoy=hoy.getFullYear();
   var tbody=document.getElementById('dash-tbody'); tbody.innerHTML='';
@@ -528,10 +532,7 @@ function renderFinanzas(){
   // Gastos del mes seleccionado
   var gastosMes=GASTOS_MANT.filter(function(g){return gastoMesIdx(g)===mi;});
   if(gastosLines){gastosLines.innerHTML=gastosMes.map(function(g){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;color:#6b6b6b;border-top:1px solid #ececea"><span>'+g.desc+'</span><span style="color:#c0392b;font-weight:500">-'+fmt(g.monto)+'</span></div>';}).join('');}
-  // Bolsa mantenimiento = FONDO_INICIAL + acumulado de 10% de todos los meses - todos los gastos
-  var bolsaMantCalc=FONDO_INICIAL;HIST_LABELS.forEach(function(_,idx){bolsaMantCalc+=calcFinMes(idx).mant;});
-  var totalGastosMant=GASTOS_MANT.reduce(function(s,g){return s+g.monto;},0);
-  BOLSA_MANT=bolsaMantCalc-totalGastosMant;
+  // Bolsa mantenimiento: valor manual controlado por el usuario
   setT('bolsa-jesus-val',fmt(BOLSA_JESUS));setT('bolsa-carlitos-val',fmt(BOLSA_CARLITOS));setT('bolsa-mant-val',fmt(BOLSA_MANT));
   setT('f-jesus-det','25% neto + pinos '+fmt(srv.internetPinos.monto)+' + celular '+fmt(srv.celular?srv.celular.monto:0));
   var fh=FIN_HIST[mi]||{};
@@ -540,6 +541,7 @@ function renderFinanzas(){
   if(btnJ){btnJ.className='btn btn-sm '+(fh.jesusTransferido?'btn-primary':'');lblJ.textContent=fh.jesusTransferido?'✓ Transferido':'Marcar transferido';}
   if(btnC){btnC.className='btn btn-sm '+(fh.carlitosTransferido?'btn-primary':'');lblC.textContent=fh.carlitosTransferido?'✓ Transferido':'Marcar transferido';}
 
+  var totalGastosMant=GASTOS_MANT.reduce(function(s,g){return s+g.monto;},0);
   var fondoAcum=FONDO_INICIAL;
   var fondoRows=HIST_LABELS.map(function(label,idx){var ff=calcFinMes(idx);fondoAcum+=ff.mant;return '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #eee;font-size:13px"><span class="text-muted">'+label+'</span><span style="font-weight:500">+'+fmt(ff.mant)+'</span></div>';}).join('');
   var fondoEl=document.getElementById('fondo-mant-display');
@@ -564,26 +566,138 @@ function renderFinanzas(){
   var filas=conDep.map(function(d){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0ee;font-size:13px"><div><span style="font-weight:500">Depto '+d.num+'</span> · '+d.nombre.split(' ')[0]+'</div><span style="font-weight:600;color:#1D9E75">'+fmt(d.renta)+'</span></div>';}).join('');
   var sinFila=sinDep.length?'<div style="margin-top:8px;font-size:12px;color:#c0392b">⚠ Sin depósito: '+sinDep.map(function(d){return 'Depto '+d.num;}).join(', ')+'</div>':'';
   depEl.innerHTML=resumen+filas+sinFila;
+  // ── Resumen anual (al final para no interrumpir si hay error) ─────────────
+  try{renderResumenAnual();}catch(e){console.warn('renderResumenAnual:',e);}
 }
 function editarFondoInicial(){document.getElementById('fondo-edit-box').style.display='block';}
-function guardarFondoInicial(){var v=parseFloat(document.getElementById('fondo-inicial-inp').value)||0;FONDO_INICIAL=v;saveFinHist();document.getElementById('fondo-edit-box').style.display='none';renderFinanzas();}
+function guardarFondoInicial(){var v=parseFloat(document.getElementById('fondo-inicial-inp').value)||0;FONDO_INICIAL=v;document.getElementById('fondo-edit-box').style.display='none';renderFinanzas();try{saveFinHist();}catch(e){console.warn('Firebase no disponible:',e);}}
+
+// ── Resumen anual ─────────────────────────────────────────────────────────
+function renderResumenAnual(){
+  var el=document.getElementById('fin-resumen-anual');if(!el)return;
+  // Agrupar meses por año
+  var porAnio={};
+  for(var i=0;i<=MEX_MES;i++){
+    var ym=idxToYM(i);var y=ym.y;
+    if(!porAnio[y])porAnio[y]={cob:0,mant:0,limp:0,srvEdif:0,jesus:0,carlitos:0};
+    var f=calcFinMes(i);
+    porAnio[y].cob+=f.cob;porAnio[y].mant+=f.mant;porAnio[y].limp+=f.limp;
+    porAnio[y].srvEdif+=f.srvEdif;porAnio[y].jesus+=f.jesus;porAnio[y].carlitos+=f.carlitos;
+  }
+  var html='';
+  Object.keys(porAnio).sort().forEach(function(y){
+    var a=porAnio[y];
+    html+='<div style="margin-bottom:16px"><div style="font-size:14px;font-weight:700;color:#1a1a1a;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #e0e0de">'+y+'</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
+    html+=_anioCard('Renta cobrada',a.cob,'#1D9E75');
+    html+=_anioCard('Jesús (25%+)',a.jesus,'#1D9E75');
+    html+=_anioCard('Carlitos (75%)',a.carlitos,'#185FA5');
+    html+=_anioCard('Mantenimiento 10%',a.mant,'#534AB7');
+    html+=_anioCard('Servicios edificio',a.srvEdif,'#c0392b');
+    html+=_anioCard('Limpieza',a.limp,'#c0392b');
+    html+='</div></div>';
+  });
+  el.innerHTML=html||'<div class="text-muted" style="font-size:13px">Sin datos aún</div>';
+}
+function _anioCard(label,val,color){
+  return '<div style="background:#f8f8f6;border-radius:8px;padding:8px"><div style="font-size:11px;color:#6b6b6b">'+label+'</div><div style="font-size:15px;font-weight:700;color:'+color+'">'+fmt(val)+'</div></div>';
+}
+
+// ── Alerta CFE próximo ────────────────────────────────────────────────────
+function alertaCFEProximo(){
+  if(!CFE_HIST.length)return;
+  // Buscar el entry con fecha fin más reciente
+  var ultimo=CFE_HIST.reduce(function(prev,cur){
+    return (!prev.fin||(cur.fin&&cur.fin>prev.fin))?cur:prev;
+  },{});
+  if(!ultimo.fin)return;
+  var finDate=new Date(ultimo.fin+'T12:00:00');
+  var hoy=new Date();hoy.setHours(0,0,0,0);
+  var diasParaVencer=Math.ceil((finDate-hoy)/(1000*60*60*24));
+  var al=document.getElementById('dash-alertas');if(!al)return;
+  if(diasParaVencer<=30&&diasParaVencer>=-10){
+    var txt=diasParaVencer<0?'Venció hace '+Math.abs(diasParaVencer)+'d':diasParaVencer===0?'Vence hoy':'Vence en '+diasParaVencer+'d';
+    al.innerHTML='<div class="alert-banner alert-amber"><i class="ti ti-bolt" style="font-size:16px;flex-shrink:0"></i><div><strong>CFE Luz — Próximo bimestre</strong><div style="font-size:12px;margin-top:2px">Periodo actual termina '+fmtD(ultimo.fin)+' · '+txt+'</div></div><button class="btn btn-sm" style="margin-left:auto" onclick="openModal(\'modal-cfe\')">Registrar CFE</button></div>'+al.innerHTML;
+  }
+}
+
+// ── Export CSV ────────────────────────────────────────────────────────────
+function exportarCSV(){
+  var csv=[];var sep=',';
+  // Hoja 1: Departamentos
+  csv.push('=== DEPARTAMENTOS ===');
+  csv.push(['Depto','Inquilino','Renta','Día pago','Tel','Contrato','Fin contrato'].join(sep));
+  DEPTOS.forEach(function(d){
+    csv.push([d.num,'"'+d.nombre+'"',d.renta,d.diaPago,d.tel||'','"'+(d.contrato||'')+'"',d.finDate||''].join(sep));
+  });
+  // Hoja 2: Pagos por mes
+  csv.push('');csv.push('=== PAGOS ===');
+  csv.push(['Depto','Mes','Monto','Forma','Fecha'].join(sep));
+  for(var i=0;i<=MEX_MES;i++){
+    var ym=idxToYM(i);
+    DEPTOS.forEach(function(d){
+      var p=getPago(d.num,i);
+      if(p&&p.pagado)csv.push([d.num,idxLabel(i),p.monto||d.renta,'"'+(p.forma||'')+'",'+'"'+(p.fecha||'')+'"'].join(sep));
+    });
+  }
+  // Hoja 3: Finanzas por mes
+  csv.push('');csv.push('=== FINANZAS POR MES ===');
+  csv.push(['Mes','Cobrado','Mant 10%','Jesús','Carlitos'].join(sep));
+  for(var i=0;i<=MEX_MES;i++){
+    var f=calcFinMes(i);
+    if(f.cob>0)csv.push([idxLabel(i),f.cob,f.mant,f.jesus,f.carlitos].join(sep));
+  }
+  // Hoja 4: Gastos mantenimiento
+  csv.push('');csv.push('=== GASTOS MANTENIMIENTO ===');
+  csv.push(['Fecha','Descripción','Monto'].join(sep));
+  GASTOS_MANT.forEach(function(g){csv.push([g.fecha,'"'+g.desc+'"',g.monto].join(sep));});
+  // Descargar
+  var blob=new Blob(['﻿'+csv.join('\n')],{type:'text/csv;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;a.download='depas1524_'+new Date().toISOString().split('T')[0]+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+
+// ── Sync CFE_HIST → SERVICIOS (para historial anterior) ──────────────────
+function syncCFEHistToServicios(){
+  var MS_SHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  function fmtPer(s){if(!s)return'';var p=s.split('-');return p[2]+' '+MS_SHORT[parseInt(p[1])-1]+' '+p[0].slice(2);}
+  CFE_HIST.forEach(function(entry){
+    var fPago=entry.fechaPago||entry.inicio;if(!fPago)return;
+    var dp=fPago.split('-');if(dp.length!==3)return;
+    var mi=mesIdx(parseInt(dp[0]),parseInt(dp[1])-1);
+    var srv=getSrv(mi);
+    if(!srv.cfe||!srv.cfe.pagado){
+      var periodo=fmtPer(entry.inicio)+(entry.fin?' – '+fmtPer(entry.fin):'');
+      srv.cfe={monto:entry.monto,fijo:false,pagado:true,periodo:periodo};
+      // No hace falta saveSrv aquí — solo sincroniza en memoria para renderizado
+    }
+  });
+}
+
+
 function marcarTransferido(quien){
   var mi=MEX_MES,f=calcFinMes(mi);
   if(!FIN_HIST[mi])FIN_HIST[mi]={jesusTransferido:false,carlitosTransferido:false};
   var antes=FIN_HIST[mi][quien+'Transferido'];
   FIN_HIST[mi][quien+'Transferido']=!antes;
-  if(quien==='jesus'){BOLSA_JESUS=Math.max(0,antes?BOLSA_JESUS+f.jesus:BOLSA_JESUS-f.jesus);}
-  else if(quien==='carlitos'){BOLSA_CARLITOS=Math.max(0,antes?BOLSA_CARLITOS+f.carlitos:BOLSA_CARLITOS-f.carlitos);}
-  saveFinHist();renderFinanzas();
+  // Sumar a la bolsa al transferir, restar si se desmarca
+  if(quien==='jesus') BOLSA_JESUS=Math.max(0, antes ? BOLSA_JESUS-f.jesus : BOLSA_JESUS+f.jesus);
+  else if(quien==='carlitos') BOLSA_CARLITOS=Math.max(0, antes ? BOLSA_CARLITOS-f.carlitos : BOLSA_CARLITOS+f.carlitos);
+  try{saveFinHist();}catch(e){}
+  renderFinanzas();
 }
 function toggleTransferido(mi,quien){
   var f=calcFinMes(mi);
   if(!FIN_HIST[mi])FIN_HIST[mi]={jesus:f.jesus,carlitos:f.carlitos,jesusTransferido:false,carlitosTransferido:false};
   var antes=FIN_HIST[mi][quien+'Transferido'];
   FIN_HIST[mi][quien+'Transferido']=!antes;
-  if(quien==='jesus'){BOLSA_JESUS=Math.max(0,antes?BOLSA_JESUS+f.jesus:BOLSA_JESUS-f.jesus);}
-  else if(quien==='carlitos'){BOLSA_CARLITOS=Math.max(0,antes?BOLSA_CARLITOS+f.carlitos:BOLSA_CARLITOS-f.carlitos);}
-  saveFinHist();renderFinanzas();
+  // Sumar a la bolsa al transferir, restar si se desmarca
+  if(quien==='jesus') BOLSA_JESUS=Math.max(0, antes ? BOLSA_JESUS-f.jesus : BOLSA_JESUS+f.jesus);
+  else if(quien==='carlitos') BOLSA_CARLITOS=Math.max(0, antes ? BOLSA_CARLITOS-f.carlitos : BOLSA_CARLITOS+f.carlitos);
+  try{saveFinHist();}catch(e){}
+  renderFinanzas();
 }
 
 function eliminarDeHistorial(idx){
@@ -868,6 +982,35 @@ function renderMantenimiento(){
       infraH.innerHTML+=g+'</div>';
     });
   }
+  // Notas
+  renderMantNotas();
+}
+
+function renderMantNotas(){
+  var el=document.getElementById('mant-notas-list');if(!el)return;
+  if(!MANT_NOTAS.length){el.innerHTML='<div style="font-size:13px;color:#999;padding:4px 0">Sin notas aún</div>';return;}
+  el.innerHTML=MANT_NOTAS.map(function(n,i){
+    return '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f0f0ee;gap:8px">'+
+      '<div><div style="font-size:13px">'+n.texto+'</div><div style="font-size:11px;color:#999;margin-top:2px">'+n.fecha+'</div></div>'+
+      '<button style="background:none;border:none;cursor:pointer;color:#ccc;font-size:14px;padding:0 4px;flex-shrink:0" onclick="eliminarNotaMant('+i+')" title="Eliminar">✕</button>'+
+    '</div>';
+  }).join('');
+}
+function agregarNotaMant(){
+  var inp=document.getElementById('mant-nota-inp');
+  var texto=inp?inp.value.trim():'';
+  if(!texto)return;
+  var fecha=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+  MANT_NOTAS.unshift({texto:texto,fecha:fecha});
+  inp.value='';
+  try{saveMantNotas();}catch(e){}
+  renderMantNotas();
+}
+function eliminarNotaMant(i){
+  if(!confirm('¿Eliminar esta nota?'))return;
+  MANT_NOTAS.splice(i,1);
+  try{saveMantNotas();}catch(e){}
+  renderMantNotas();
 }
 
 // Días reales en un mes
@@ -965,7 +1108,10 @@ function leerINEBase(file,tipo,previewId,statusId,onInq,onAval){
   var reader=new FileReader();
   reader.onload=function(){
     var b64=reader.result.split(',')[1];
-    fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:b64}},{type:'text',text:'Extrae datos del INE mexicano. Responde SOLO JSON sin backticks: {"nombre_completo":"","curp":"","fecha_nacimiento":"YYYY-MM-DD","domicilio_calle":"","domicilio_colonia":"","domicilio_ciudad":"","domicilio_estado":"","domicilio_cp":""}'}]}]})})
+    var apiKey=localStorage.getItem('claude_api_key')||'';
+    if(!apiKey){apiKey=prompt('Ingresa tu API key de Claude (se guarda solo en este navegador):');if(apiKey)localStorage.setItem('claude_api_key',apiKey.trim());}
+    if(!apiKey){document.getElementById(statusId).innerHTML='<div style="font-size:11px;color:#c0392b">API key requerida.</div>';return;}
+    fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-opus-4-5',max_tokens:500,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:file.type||'image/jpeg',data:b64}},{type:'text',text:'Extrae datos del INE mexicano. Responde SOLO JSON sin backticks: {"nombre_completo":"","curp":"","fecha_nacimiento":"YYYY-MM-DD","domicilio_calle":"","domicilio_colonia":"","domicilio_ciudad":"","domicilio_estado":"","domicilio_cp":""}'}]}]})})
     .then(function(r){return r.json();}).then(function(data){
       var txt=data.content.map(function(c){return c.text||'';}).join('').trim();
       var p;try{p=JSON.parse(txt.replace(/```json|```/g,'').trim());}catch(e){p=null;}
@@ -1027,6 +1173,15 @@ function toggleBolsaEdit(quien,show){
     inp.value=val;inp.focus();inp.select();
   }
 }
+function agregarMantMes(){
+  var mi=MEX_MES;
+  var mant=calcFinMes(mi).mant;
+  if(mant<=0){alert('No hay 10% acumulado este mes (aún no hay rentas cobradas).');return;}
+  if(!confirm('¿Agregar '+fmt(mant)+' al fondo de mantenimiento?'))return;
+  BOLSA_MANT+=mant;
+  try{saveFinHist();}catch(e){}
+  renderFinanzas();
+}
 function ajustarBolsa(quien){
   var inp=document.getElementById('bolsa-'+quien+'-inp');
   var val=parseFloat(inp?inp.value:0)||0;
@@ -1034,7 +1189,8 @@ function ajustarBolsa(quien){
   else if(quien==='carlitos')BOLSA_CARLITOS=val;
   else if(quien==='mant')BOLSA_MANT=val;
   toggleBolsaEdit(quien,false);
-  saveFinHist();renderFinanzas();
+  try{saveFinHist();}catch(e){}
+  renderFinanzas();
 }
 function limpiarContrato(){
   var ids=['c-nombre','c-aval','c-ini','c-fin-f','c-monto','c-tel','c-email','c-nac','c-dom'];
@@ -1087,5 +1243,6 @@ function recalcularBolsas(){
 
 // ── Render all ─────────────────────────────────────────────────────────────
 function renderAll(){
+  try{syncCFEHistToServicios();}catch(e){console.warn('syncCFE:',e);}
   renderDashboard();renderDeptos();renderPagos();renderServicios();renderFinanzas();renderContratos();renderMantenimiento();
 }

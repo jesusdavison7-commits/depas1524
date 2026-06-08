@@ -148,7 +148,7 @@
 
       <!-- Bolsas + Fondo mantenimiento en una sola card -->
       <div class="card">
-        <div class="card-title mb-12"><i class="ti ti-wallet" style="color:#1D9E75;margin-right:6px"></i>Bolsas acumuladas</div>
+        <div class="card-title mb-12"><i class="ti ti-wallet" style="color:#1D9E75;margin-right:6px"></i>Bolsas acumuladas <span style="font-size:11px;color:#999;font-weight:400">(NU CARD)</span></div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
           <div style="background:#E1F5EE;border-radius:10px;padding:12px;position:relative">
             <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#085041;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Jesús</span><button onclick="toggleBolsaEdit('jesus',true)" style="background:none;border:none;cursor:pointer;color:#1D9E75;font-size:16px;padding:0" title="Ajustar">✎</button></div>
@@ -177,9 +177,11 @@
           <div style="background:#F0EEFF;border-radius:10px;padding:12px;position:relative">
             <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#3B2E9E;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Mantenimiento</span><button onclick="toggleBolsaEdit('mant',true)" style="background:none;border:none;cursor:pointer;color:#534AB7;font-size:16px;padding:0" title="Ajustar">✎</button></div>
             <div style="font-size:22px;font-weight:700;color:#534AB7;margin:4px 0" id="bolsa-mant-val">$0</div>
-            <div style="font-size:11px;color:#6b6b6b">Fondo acumulado</div>
+            <div style="font-size:11px;color:#6b6b6b">Fondo de mantenimiento</div>
+            <button id="btn-agregar-mant" onclick="agregarMantMes()" style="margin-top:8px;width:100%;background:#534AB7;color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;font-weight:600">+ Agregar 10% de este mes</button>
             <div id="bolsa-mant-edit" style="display:none;margin-top:8px">
-              <input type="number" id="bolsa-mant-inp" style="width:100%;padding:4px 8px;border:1px solid #c8c0f0;border-radius:6px;font-size:13px;margin-bottom:6px">
+              <div style="font-size:11px;color:#6b6b6b;margin-bottom:4px">Saldo del fondo</div>
+              <input type="number" id="bolsa-mant-inp" style="width:100%;padding:4px 8px;border:1px solid #c8c0f0;border-radius:6px;font-size:13px;margin-bottom:6px" placeholder="Ej. 5000">
               <div style="display:flex;gap:6px">
                 <button class="btn btn-sm btn-primary" style="flex:1;font-size:11px" onclick="ajustarBolsa('mant')">Guardar</button>
                 <button class="btn btn-sm" style="flex:1;font-size:11px" onclick="toggleBolsaEdit('mant',false)">Cancelar</button>
@@ -202,11 +204,26 @@
         <div id="fin-depositos"></div>
       </div>
 
+      <!-- Resumen anual -->
+      <details class="card" style="cursor:default">
+        <summary style="cursor:pointer;font-size:14px;font-weight:600;list-style:none;display:flex;align-items:center;gap:6px;color:#1a1a1a"><i class="ti ti-calendar-stats" style="color:#6b6b6b"></i> Resumen anual</summary>
+        <div id="fin-resumen-anual" style="margin-top:12px"></div>
+      </details>
+
       <!-- Historial colapsable -->
       <details class="card" style="cursor:default">
         <summary style="cursor:pointer;font-size:14px;font-weight:600;list-style:none;display:flex;align-items:center;gap:6px;color:#1a1a1a"><i class="ti ti-history" style="color:#6b6b6b"></i> Historial de distribuciones</summary>
         <div id="fin-historial" style="margin-top:12px"></div>
       </details>
+
+      <!-- Export -->
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:13px;font-weight:600">Exportar datos</div>
+          <div style="font-size:12px;color:#6b6b6b">Descarga toda la información en CSV</div>
+        </div>
+        <button class="btn btn-sm" onclick="exportarCSV()"><i class="ti ti-download"></i> Exportar CSV</button>
+      </div>
 
     </div>
 
@@ -349,6 +366,16 @@
 
       <div style="text-align:center;padding:4px 0 8px">
         <button class="btn btn-sm" onclick="openModal('modal-protocolo-agua')" style="color:#A32D2D;border-color:#f0c0c0"><i class="ti ti-alert-triangle"></i> Ver protocolo falta de agua</button>
+      </div>
+
+      <!-- Notas de mantenimiento -->
+      <div class="card">
+        <div class="card-title mb-12"><i class="ti ti-notes" style="color:#534AB7;margin-right:6px"></i>Notas</div>
+        <div id="mant-notas-list" style="margin-bottom:12px"></div>
+        <div style="display:flex;gap:8px">
+          <textarea id="mant-nota-inp" rows="2" placeholder="Escribe una nota..." style="flex:1;resize:vertical;padding:8px;border:1px solid #d0d0ce;border-radius:8px;font-size:13px;font-family:inherit"></textarea>
+          <button class="btn btn-primary btn-sm" onclick="agregarNotaMant()" style="align-self:flex-end">Agregar</button>
+        </div>
       </div>
 
     </div>
