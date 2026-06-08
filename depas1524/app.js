@@ -839,15 +839,14 @@ function darDeAlta(){
   var isNew=VACIOS.indexOf(dep)>-1;
   var existing=DEPTOS.find(function(d){return d.num===dep;});
   var prevBitacora=(existing&&existing.bitacora)||[];
-  // URLs de INE: si ya había URL en Firestore se conserva; los archivos nuevos se suben a Storage después
-  var ineInq=existing?existing.ineInqUrl||'':'';
-  var ineAval=existing?existing.ineAvalUrl||'':'';
+  // URLs de INE: usa la foto nueva si se seleccionó, o conserva la existente
+  var ineInq=_tmpIneInq||(existing?existing.ineInqUrl||'':'');
+  var ineAval=_tmpIneAval||(existing?existing.ineAvalUrl||'':'');
+  _tmpIneInq='';_tmpIneAval='';
   var obj={num:dep,nombre:nom,renta:renta,diaPago:dia,contrato:contrato,finDate:finDate,finStr:finStr,deposito:true,tel:document.getElementById('c-tel').value,email:document.getElementById('c-email').value,curp:'',nacimiento:document.getElementById('c-nac').value,ocupacion:'',domicilio:document.getElementById('c-dom').value,notas:'',ineInqUrl:ineInq,ineAvalUrl:ineAval,bitacora:prevBitacora,aval:{nombre:document.getElementById('c-aval').value,parentesco:'',tel:'',email:'',curp:'',calle:'',colonia:'',ciudad:'',estado:'',cp:'',propiedad:'Sí',propDir:'',notas:''}};
   if(existing){DEPTOS[DEPTOS.indexOf(existing)]=obj;}else{DEPTOS.push(obj);DEPTOS.sort(function(a,b){return a.num-b.num;});}
   var vi=VACIOS.indexOf(dep);if(vi>-1)VACIOS.splice(vi,1);if(!PAGOS[dep])PAGOS[dep]={};
   saveDepto(obj);
-  // Subir fotos INE pendientes a Storage (en background)
-  subirINEContratoPendiente(dep,function(){renderAll();});
   // Primer mes + depósito auto-registrado (solo en alta nueva, no renovaciones)
   if(isNew&&ini){
     var iniD=new Date(ini+'T12:00:00');
@@ -1148,15 +1147,17 @@ function subirINEVer(event,tipo,idx){
   var file=event.target.files[0];if(!file)return;
   var d=DEPTOS[idx];if(!d)return;
   var viIne=document.getElementById('vi-ine');
-  if(viIne)viIne.innerHTML='<div style="padding:16px;color:#6b6b6b;font-size:13px"><i class="ti ti-loader-2"></i> Subiendo foto…</div>';
-  subirINEAStorage(file,tipo,d.num,
-    function(){
+  if(viIne)viIne.innerHTML='<div style="padding:16px;color:#6b6b6b;font-size:13px">Comprimiendo foto…</div>';
+  comprimirImagen(file,
+    function(b64){
+      if(tipo==='inq')d.ineInqUrl=b64;else d.ineAvalUrl=b64;
+      saveDepto(d);
       document.getElementById('vi-ine').innerHTML=_inePanel('inq',d,idx)+_inePanel('aval',d,idx);
       showToast('✓ Foto INE guardada','ok');
     },
     function(){
       document.getElementById('vi-ine').innerHTML=_inePanel('inq',d,idx)+_inePanel('aval',d,idx);
-      showToast('Error al subir INE','error');
+      showToast('Error al procesar la imagen','error');
     }
   );
 }
@@ -1207,39 +1208,38 @@ function borrarINEEdit(tipo){
   borrarINEDeStorage(d.num,tipo,function(){_inePanelEditArea(tipo);showToast('Foto INE eliminada','ok');});
 }
 
-// ── INE — Firebase Storage ────────────────────────────────────────────────
-var storage = firebase.storage();
-
-function _ineStoragePath(deptoNum,tipo){
-  return 'ine/depto'+deptoNum+'_'+tipo+'.jpg';
+// ── INE — base64 comprimido con Canvas (sin Firebase Storage) ────────────
+// Comprime imagen a máx 900px y calidad 65% → ~60-100KB por foto
+function comprimirImagen(file, onOk, onErr){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var MAX=900, w=img.width, h=img.height;
+      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+      var canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      var ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      var b64=canvas.toDataURL('image/jpeg',0.65);
+      var kb=Math.round(b64.length*0.75/1024);
+      console.log('INE comprimida: '+w+'x'+h+' px, ~'+kb+'KB');
+      if(onOk)onOk(b64);
+    };
+    img.onerror=function(){if(onErr)onErr();};
+    img.src=e.target.result;
+  };
+  reader.onerror=function(){if(onErr)onErr();};
+  reader.readAsDataURL(file);
 }
 
-// Sube a Storage y guarda la URL pública en Firestore
-function subirINEAStorage(file, tipo, deptoNum, onOk, onErr){
-  var path=_ineStoragePath(deptoNum,tipo);
-  var ref=storage.ref().child(path);
-  ref.put(file).then(function(){
-    return ref.getDownloadURL();
-  }).then(function(url){
-    var d=DEPTOS.find(function(x){return x.num===deptoNum;});
-    if(!d)return;
-    if(tipo==='inq')d.ineInqUrl=url;else d.ineAvalUrl=url;
-    return saveDepto(d).then(function(){if(onOk)onOk(url);});
-  }).catch(function(e){
-    console.error('Error subiendo INE:',e);
-    if(onErr)onErr(e);
-  });
-}
-
-// Borra de Storage + limpia URL en Firestore
+// Borra URL de Firestore
 function borrarINEDeStorage(deptoNum,tipo,onOk){
-  var path=_ineStoragePath(deptoNum,tipo);
-  storage.ref().child(path).delete().catch(function(){/* no existía, ok */}).finally(function(){
-    var d=DEPTOS.find(function(x){return x.num===deptoNum;});
-    if(!d)return;
-    if(tipo==='inq')d.ineInqUrl='';else d.ineAvalUrl='';
-    saveDepto(d);if(onOk)onOk();
-  });
+  var d=DEPTOS.find(function(x){return x.num===deptoNum;});
+  if(!d)return;
+  if(tipo==='inq')d.ineInqUrl='';else d.ineAvalUrl='';
+  saveDepto(d);if(onOk)onOk();
 }
 
 // Modal Editar — leer INE
@@ -1247,49 +1247,49 @@ function leerINE(event,tipo){
   var file=event.target.files[0];if(!file)return;
   var stEl=document.getElementById('ine-'+tipo+'-st');
   var d=DEPTOS[editIdx];if(!d)return;
-  if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#6b6b6b;padding:4px 0"><i class="ti ti-loader-2"></i> Subiendo…</div>';
-  // Preview inmediato con URL local
+  if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#6b6b6b;padding:4px 0">Comprimiendo…</div>';
   var localUrl=URL.createObjectURL(file);
   var prevEl=document.getElementById('ine-'+tipo+'-prev');
-  if(prevEl)prevEl.innerHTML='<img src="'+localUrl+'" class="ine-preview" style="margin-bottom:8px"><div style="font-size:11px;color:#6b6b6b">Subiendo…</div>';
-  subirINEAStorage(file,tipo,d.num,
-    function(url){
+  if(prevEl)prevEl.innerHTML='<img src="'+localUrl+'" class="ine-preview" style="margin-bottom:8px"><div style="font-size:11px;color:#6b6b6b">Guardando…</div>';
+  comprimirImagen(file,
+    function(b64){
+      if(tipo==='inq')d.ineInqUrl=b64;else d.ineAvalUrl=b64;
+      saveDepto(d);
       _inePanelEditArea(tipo);
       if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#085041;padding:4px 0">✓ Guardado</div>';
       showToast('✓ Foto INE guardada','ok');
     },
-    function(e){
-      if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#c0392b;padding:4px 0">⚠ Error al subir. Intenta de nuevo.</div>';
-      showToast('Error al subir INE. Verifica tu conexión.','error');
+    function(){
+      if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#c0392b;padding:4px 0">⚠ Error al procesar imagen</div>';
+      showToast('Error al procesar la imagen','error');
     }
   );
 }
 
-// Modal Contrato — leer INE (guarda a Storage al dar de alta)
+// Modal Contrato — leer INE (base64 comprimido en temp hasta dar de alta)
 var _tmpIneInq='', _tmpIneAval='';
-var _tmpIneFileInq=null, _tmpIneFileAval=null;
 function leerINEContrato(event,tipo){
   var file=event.target.files[0];if(!file)return;
-  if(tipo==='inq'){_tmpIneFileInq=file;_tmpIneInq='pending';}
-  else{_tmpIneFileAval=file;_tmpIneAval='pending';}
   var prevId=tipo==='inq'?'c-ine-inq-prev':'c-ine-aval-prev';
-  var url=URL.createObjectURL(file),prevEl=document.getElementById(prevId);
-  if(prevEl)prevEl.innerHTML='<img src="'+url+'" class="ine-preview" style="width:100%;max-height:100px;object-fit:cover;border-radius:8px;margin-top:6px">';
   var stEl=document.getElementById('c-ine-'+tipo+'-st');
-  if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#085041;padding:2px 0">✓ Lista para guardar al dar de alta</div>';
+  var localUrl=URL.createObjectURL(file);
+  var prevEl=document.getElementById(prevId);
+  if(prevEl)prevEl.innerHTML='<img src="'+localUrl+'" class="ine-preview" style="width:100%;max-height:100px;object-fit:cover;border-radius:8px;margin-top:6px">';
+  if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#6b6b6b;padding:2px 0">Comprimiendo…</div>';
+  comprimirImagen(file,
+    function(b64){
+      if(tipo==='inq')_tmpIneInq=b64;else _tmpIneAval=b64;
+      if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#085041;padding:2px 0">✓ Lista para guardar</div>';
+    },
+    function(){
+      if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#c0392b;padding:2px 0">⚠ Error al leer imagen</div>';
+    }
+  );
 }
 
-// Sube INE del contrato después de guardar el depto (tiene num asignado)
+// Placeholder para compatibilidad (ya no hay archivos pendientes, todo es base64)
 function subirINEContratoPendiente(deptoNum, onDone){
-  var pendientes=[];
-  if(_tmpIneFileInq)pendientes.push({file:_tmpIneFileInq,tipo:'inq'});
-  if(_tmpIneFileAval)pendientes.push({file:_tmpIneFileAval,tipo:'aval'});
-  _tmpIneInq='';_tmpIneAval='';_tmpIneFileInq=null;_tmpIneFileAval=null;
-  if(!pendientes.length){if(onDone)onDone();return;}
-  var count=0;
-  pendientes.forEach(function(p){
-    subirINEAStorage(p.file,p.tipo,deptoNum,function(){count++;if(count===pendientes.length&&onDone)onDone();},function(){count++;if(count===pendientes.length&&onDone)onDone();});
-  });
+  if(onDone)onDone();
 }
 
 function toggleBolsaEdit(quien,show){
