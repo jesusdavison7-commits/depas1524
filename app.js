@@ -167,13 +167,15 @@ function totalSrvJesus(mi) { var s=getSrv(mi);return s.internetPinos.monto+(s.ce
 function calcFinMes(mi) {
   var cob=cobradoMes(mi),srv=getSrv(mi);
   var limp=srv.limpieza.pagado?srv.limpieza.monto:0;
-  var mant=cob*0.10,srvEdif=totalSrvEdificio(mi),srvJ=totalSrvJesus(mi);
+  var srvEdif=totalSrvEdificio(mi),srvJ=totalSrvJesus(mi);
   var internet=srv.internet.pagado?srv.internet.monto:0;
   var agua=srv.agua.pagado?srv.agua.monto:0;
   var cfe=(srv.cfe&&srv.cfe.pagado)?srv.cfe.monto:0;
-  // Solo gastos registrados en este mes específico
   var gastosMant=GASTOS_MANT.filter(function(g){return gastoMesIdx(g)===mi;}).reduce(function(s,g){return s+g.monto;},0);
-  var neto=Math.max(0,cob-mant-limp-srvEdif-gastosMant);
+  // 10% se calcula sobre lo que queda después de servicios y gastos
+  var subtotal=Math.max(0,cob-limp-srvEdif-gastosMant);
+  var mant=subtotal*0.10;
+  var neto=Math.max(0,subtotal-mant);
   return{cob:cob,mant:mant,limp:limp,internet:internet,agua:agua,cfe:cfe,cfePeriodo:srv.cfe&&srv.cfe.periodo||'',srvEdif:srvEdif,gastosMant:gastosMant,neto:neto,srvJ:srvJ,jesus:neto*0.25+srvJ,carlitos:neto*0.75};
 }
 
