@@ -1123,11 +1123,11 @@ function subirINEStorage(file,tipo,deptoNum){
 }
 function leerINE(event,tipo){
   var file=event.target.files[0];if(!file)return;
-  var deptoNum=DEPTOS[editIdx]?DEPTOS[editIdx].num:'x';
   var url=URL.createObjectURL(file);
   var prevEl=document.getElementById('ine-'+tipo+'-prev');
   if(prevEl)prevEl.innerHTML='<img src="'+url+'" class="ine-preview">';
-  subirINEStorage(file,tipo,deptoNum);
+  var stEl=document.getElementById('ine-'+tipo+'-st');
+  if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#085041;padding:4px 0">✓ Foto cargada</div>';
 }
 function leerINEContrato(event,tipo){
   var file=event.target.files[0];if(!file)return;

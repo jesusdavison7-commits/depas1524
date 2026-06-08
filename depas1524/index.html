@@ -243,7 +243,7 @@
           <div class="card" style="padding-top:0">
             <div class="tabs" id="ctabs-nav" style="margin:0 -16px 16px;padding:0 16px;border-bottom:1px solid #f0f0ee">
               <button class="tab active" onclick="swTab('ctab-datos','ctabs',this)"><i class="ti ti-file-description" style="font-size:13px"></i> Contrato</button>
-              <button class="tab" onclick="swTab('ctab-ine','ctabs',this)"><i class="ti ti-id" style="font-size:13px"></i> INE · IA</button>
+              <button class="tab" onclick="swTab('ctab-ine','ctabs',this)"><i class="ti ti-id" style="font-size:13px"></i> INE</button>
             </div>
             <div id="ctabs">
 
@@ -288,7 +288,7 @@
 
               <!-- Tab INE -->
               <div id="ctab-ine" class="tab-panel">
-                <div class="info-note purple-note" style="margin-bottom:14px"><i class="ti ti-sparkles"></i> <strong>IA activa:</strong> sube una foto del INE y los datos se llenan automáticamente.</div>
+                <div class="info-note purple-note" style="margin-bottom:14px"><i class="ti ti-id"></i> Sube foto del INE para referencia. Llena los datos manualmente.</div>
                 <div class="ine-grid">
                   <div><div class="section-label">INE inquilino</div>
                     <div class="ine-zone" onclick="document.getElementById('c-ine-inq').click()">
@@ -428,7 +428,7 @@
           <div><div class="section-label">INE del inquilino</div><div class="ine-zone" onclick="document.getElementById('f-ine-inq').click()"><input type="file" id="f-ine-inq" accept="image/*" style="display:none" onchange="leerINE(event,'inq')"><i class="ti ti-id muted-icon" style="font-size:26px"></i><div class="text-muted" style="font-size:12px;margin-top:5px">Subir foto del INE</div></div><div id="ine-inq-prev"></div><div id="ine-inq-st" class="mt-6"></div></div>
           <div><div class="section-label">INE del aval</div><div class="ine-zone" onclick="document.getElementById('f-ine-aval').click()"><input type="file" id="f-ine-aval" accept="image/*" style="display:none" onchange="leerINE(event,'aval')"><i class="ti ti-id muted-icon" style="font-size:26px"></i><div class="text-muted" style="font-size:12px;margin-top:5px">Subir foto del INE</div></div><div id="ine-aval-prev"></div><div id="ine-aval-st" class="mt-6"></div></div>
         </div>
-        <div class="info-note purple-note"><i class="ti ti-sparkles"></i> <strong>IA activa:</strong> extrae nombre, CURP, domicilio y fecha de nacimiento.</div>
+        <div class="info-note purple-note"><i class="ti ti-id"></i> Sube foto del INE para referencia. Llena los datos manualmente.</div>
       </div>
       <div id="mi-tab-aval" class="tab-panel">
         <div class="form-row"><div class="form-group"><label>Nombre del aval</label><input type="text" id="a-nombre"></div><div class="form-group"><label>Parentesco</label><input type="text" id="a-par"></div></div>
