@@ -114,7 +114,9 @@ var SRV_META = [
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function fmt(n) { return '$' + Math.round(n).toLocaleString('es-MX'); }
-function avI(name) { var p=name.trim().split(' '); return (p[0][0]+(p[1]?p[1][0]:'')).toUpperCase(); }
+// Escapa caracteres HTML para prevenir XSS en innerHTML
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function avI(name) { var p=esc(name).trim().split(' '); return (p[0][0]+(p[1]?p[1][0]:'')).toUpperCase(); }
 function avEl(name,i,cls) { cls=cls||'avatar'; return '<div class="'+cls+' '+AVS[i%5]+'">'+avI(name)+'</div>'; }
 function fmtD(iso) { if(!iso)return'—'; var d=new Date(iso+'T12:00:00'); return d.getDate()+' '+MS[d.getMonth()]+' '+d.getFullYear(); }
 
@@ -346,7 +348,7 @@ function renderDashboard() {
     if(!d.finDate)return;
     var fin=new Date(d.finDate+'T12:00:00');
     var dias=Math.ceil((fin-hoy)/(1000*60*60*24));
-    if(dias>=0&&dias<=31)al.innerHTML+='<div class="alert-banner alert-red"><i class="ti ti-calendar-x" style="font-size:16px;flex-shrink:0"></i><div><strong>Contrato por vencer</strong> — Depto '+d.num+' ('+d.nombre.split(' ')[0]+') vence '+fmtD(d.finDate)+' ('+(dias===0?'hoy':dias+' días')+')</div></div>';
+    if(dias>=0&&dias<=31)al.innerHTML+='<div class="alert-banner alert-red"><i class="ti ti-calendar-x" style="font-size:16px;flex-shrink:0"></i><div><strong>Contrato por vencer</strong> — Depto '+d.num+' ('+esc(d.nombre).split(' ')[0]+') vence '+fmtD(d.finDate)+' ('+(dias===0?'hoy':dias+' días')+')</div></div>';
   });
 
   var srv=getSrv(mi),srvPend=[];
@@ -380,7 +382,7 @@ function renderDashboard() {
       }
       accion='<button class="btn btn-xs btn-primary" onclick="marcarPagado('+d.num+')">Marcar pagado</button>';
     }
-    tbody.innerHTML+='<tr style="'+rowStyle+'"><td><strong>Depto '+d.num+'</strong></td><td><div class="flex gap-8">'+avEl(d.nombre,i)+'<span>'+d.nombre+'</span></div></td><td class="text-muted">'+diaLabel+'</td><td>'+fmt(d.renta)+'</td><td>'+badge+'</td><td>'+accion+'</td></tr>';
+    tbody.innerHTML+='<tr style="'+rowStyle+'"><td><strong>Depto '+d.num+'</strong></td><td><div class="flex gap-8">'+avEl(d.nombre,i)+'<span>'+esc(d.nombre)+'</span></div></td><td class="text-muted">'+diaLabel+'</td><td>'+fmt(d.renta)+'</td><td>'+badge+'</td><td>'+accion+'</td></tr>';
   });
   VACIOS.forEach(function(n){tbody.innerHTML+='<tr><td><strong>Depto '+n+'</strong></td><td colspan="5" class="text-muted">Vacío</td></tr>';});
 }
@@ -411,10 +413,10 @@ function renderDeptos() {
       return '<span title="'+cm.label+'" style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:9px;font-weight:700;background:'+(ok?'#D1FAE5':'#FEE2E2')+';color:'+(ok?'#065F46':'#991B1B')+'">'+(ok?'✓':'✗')+'</span>';
     });
     // Teléfono clickeable
-    var telHtml=d.tel?'<a href="tel:'+d.tel+'" style="color:inherit;text-decoration:none;font-weight:600">'+d.tel+'</a>':'<strong>—</strong>';
-    var avalTel=d.aval&&d.aval.tel?'<a href="tel:'+d.aval.tel+'" style="color:inherit;text-decoration:none">'+d.aval.tel+'</a>':'—';
-    var avalNomTel=d.aval&&d.aval.nombre?(d.aval.nombre+(d.aval.tel?' · '+avalTel:'')):'—';
-    list.innerHTML+='<div class="card" style="margin-bottom:.75rem;border-left:3px solid '+(ok?'#1D9E75':'#EF9F27')+';border-radius:0 12px 12px 0"><div class="flex" style="justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px"><div class="flex gap-8" style="cursor:pointer" onclick="verInq('+i+')"><div style="background:#f0f0f0;border-radius:8px;padding:4px 10px;font-size:18px;font-weight:600;color:#6b6b6b;min-width:40px;text-align:center">'+d.num+'</div>'+avEl(d.nombre,i,'avatar')+'<div><div style="font-weight:600;font-size:14px">'+d.nombre+'</div><div class="text-muted">'+d.contrato+' · '+fmt(d.renta)+'/mes · día '+d.diaPago+(d.finStr?' · vence '+d.finStr:'')+'</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+pagosBadge+contratoTag+avalBadge+ineBadge+(d.deposito?'<span class="badge badge-green">Dep. ✓</span>':'<span class="badge badge-red">Sin dep.</span>')+'<button class="btn btn-sm" onclick="editarInq('+i+')"><i class="ti ti-edit"></i> Editar</button></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;font-size:12px;border-top:1px solid #eee;padding-top:.75rem"><div><span class="text-muted">Teléfono</span><br>'+telHtml+'</div><div><span class="text-muted">Correo</span><br><strong>'+(d.email||'—')+'</strong></div><div><span class="text-muted">Ocupación</span><br><strong>'+(d.ocupacion||'—')+'</strong></div><div><span class="text-muted">Aval</span><br><span style="font-size:12px">'+avalNomTel+'</span></div></div></div>';
+    var telHtml=d.tel?'<a href="tel:'+esc(d.tel)+'" style="color:inherit;text-decoration:none;font-weight:600">'+esc(d.tel)+'</a>':'<strong>—</strong>';
+    var avalTel=d.aval&&d.aval.tel?'<a href="tel:'+esc(d.aval.tel)+'" style="color:inherit;text-decoration:none">'+esc(d.aval.tel)+'</a>':'—';
+    var avalNomTel=d.aval&&d.aval.nombre?(esc(d.aval.nombre)+(d.aval.tel?' · '+avalTel:'')):'—';
+    list.innerHTML+='<div class="card" style="margin-bottom:.75rem;border-left:3px solid '+(ok?'#1D9E75':'#EF9F27')+';border-radius:0 12px 12px 0"><div class="flex" style="justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px"><div class="flex gap-8" style="cursor:pointer" onclick="verInq('+i+')"><div style="background:#f0f0f0;border-radius:8px;padding:4px 10px;font-size:18px;font-weight:600;color:#6b6b6b;min-width:40px;text-align:center">'+d.num+'</div>'+avEl(d.nombre,i,'avatar')+'<div><div style="font-weight:600;font-size:14px">'+esc(d.nombre)+'</div><div class="text-muted">'+esc(d.contrato)+' · '+fmt(d.renta)+'/mes · día '+d.diaPago+(d.finStr?' · vence '+esc(d.finStr):'')+'</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+pagosBadge+contratoTag+avalBadge+ineBadge+(d.deposito?'<span class="badge badge-green">Dep. ✓</span>':'<span class="badge badge-red">Sin dep.</span>')+'<button class="btn btn-sm" onclick="editarInq('+i+')"><i class="ti ti-edit"></i> Editar</button></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;font-size:12px;border-top:1px solid #eee;padding-top:.75rem"><div><span class="text-muted">Teléfono</span><br>'+telHtml+'</div><div><span class="text-muted">Correo</span><br><strong>'+esc(d.email||'—')+'</strong></div><div><span class="text-muted">Ocupación</span><br><strong>'+esc(d.ocupacion||'—')+'</strong></div><div><span class="text-muted">Aval</span><br><span style="font-size:12px">'+avalNomTel+'</span></div></div></div>';
   });
 }
 
@@ -506,7 +508,7 @@ function renderServicios() {
   // Gastos de mantenimiento
   var gastosEl=document.getElementById('gastos-mant-list');if(gastosEl){
     if(!GASTOS_MANT.length){gastosEl.innerHTML='<div style="font-size:13px;color:#999;padding:8px 0">Sin gastos registrados</div>';}
-    else{gastosEl.innerHTML=GASTOS_MANT.map(function(g,i){return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0f0ee"><div><span style="font-size:13px;font-weight:500">'+g.desc+'</span><span style="font-size:11px;color:#999;margin-left:8px">'+g.fecha+'</span></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;color:#c0392b">-$'+g.monto.toLocaleString('es-MX',{minimumFractionDigits:2})+'</span><button style="background:none;border:none;cursor:pointer;color:#ccc;font-size:14px;padding:2px 6px" onclick="eliminarGastoMant('+i+')" title="Eliminar">✕</button></div></div>';}).join('');}
+    else{gastosEl.innerHTML=GASTOS_MANT.map(function(g,i){return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0f0ee"><div><span style="font-size:13px;font-weight:500">'+esc(g.desc)+'</span><span style="font-size:11px;color:#999;margin-left:8px">'+esc(g.fecha)+'</span></div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;font-weight:600;color:#c0392b">-$'+g.monto.toLocaleString('es-MX',{minimumFractionDigits:2})+'</span><button style="background:none;border:none;cursor:pointer;color:#ccc;font-size:14px;padding:2px 6px" onclick="eliminarGastoMant('+i+')" title="Eliminar">✕</button></div></div>';}).join('');}
   }
 }
 function togSrv(k){var d=document.getElementById('sd-'+k),inp=document.getElementById('si-'+k),h=d.style.display==='none';d.style.display=h?'block':'none';inp.style.display=h?'none':'block';if(!h)document.getElementById('sinp-'+k).focus();}
@@ -762,7 +764,7 @@ function renderContratos(){
   if(!INQ_HIST.length){hl.innerHTML='<div class="text-muted" style="font-size:13px;padding:8px 0">Sin inquilinos eliminados aún</div>';return;}
   var rows='<table class="tbl"><thead><tr><th>Inquilino</th><th>Depto</th><th>Renta</th><th>Eliminado</th><th></th></tr></thead><tbody>';
   INQ_HIST.forEach(function(d,i){
-    rows+='<tr><td style="font-weight:500">'+d.nombre+'</td><td>Depto '+d.num+'</td><td>'+fmt(d.renta)+'</td><td class="text-muted">'+d._eliminado+'</td><td style="display:flex;gap:6px"><button class="btn btn-xs btn-primary" onclick="restaurarInq('+i+')"><i class="ti ti-refresh"></i> Restaurar</button><button class="btn btn-xs btn-danger" onclick="eliminarDeHistorial('+i+')"><i class="ti ti-trash"></i> Eliminar</button></td></tr>';
+    rows+='<tr><td style="font-weight:500">'+esc(d.nombre)+'</td><td>Depto '+d.num+'</td><td>'+fmt(d.renta)+'</td><td class="text-muted">'+esc(d._eliminado)+'</td><td style="display:flex;gap:6px"><button class="btn btn-xs btn-primary" onclick="restaurarInq('+i+')"><i class="ti ti-refresh"></i> Restaurar</button><button class="btn btn-xs btn-danger" onclick="eliminarDeHistorial('+i+')"><i class="ti ti-trash"></i> Eliminar</button></td></tr>';
   });
   rows+='</tbody></table>';
   hl.innerHTML=rows;
@@ -1025,7 +1027,7 @@ function renderMantNotas(){
   if(!MANT_NOTAS.length){el.innerHTML='<div style="font-size:13px;color:#999;padding:4px 0">Sin notas aún</div>';return;}
   el.innerHTML=MANT_NOTAS.map(function(n,i){
     return '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f0f0ee;gap:8px">'+
-      '<div><div style="font-size:13px">'+n.texto+'</div><div style="font-size:11px;color:#999;margin-top:2px">'+n.fecha+'</div></div>'+
+      '<div><div style="font-size:13px">'+esc(n.texto)+'</div><div style="font-size:11px;color:#999;margin-top:2px">'+esc(n.fecha)+'</div></div>'+
       '<button style="background:none;border:none;cursor:pointer;color:#ccc;font-size:14px;padding:0 4px;flex-shrink:0" onclick="eliminarNotaMant('+i+')" title="Eliminar">✕</button>'+
     '</div>';
   }).join('');
@@ -1169,12 +1171,13 @@ function verInq(idx){
   // Días restantes en modal ver
   var diasLabel='—';
   if(d.finDate){var finV=new Date(d.finDate+'T12:00:00'),diasV=Math.ceil((finV-new Date())/(1000*60*60*24));diasLabel=diasV<0?'⚠ Vencido':diasV+' días restantes';}
-  var telLink=d.tel?'<a href="tel:'+d.tel+'" style="color:inherit;text-decoration:none;font-weight:500">'+d.tel+'</a>':'—';
-  var fields=[['Teléfono',telLink],['Correo',d.email||'—'],['Nacimiento',d.nacimiento||'—'],['Ocupación',d.ocupacion||'—'],['Depósito',d.deposito?'Sí ✓':'No'],['Día de pago','Día '+d.diaPago],['Vence',(d.finStr||'—')+(d.finDate?' ('+diasLabel+')':'')],['Domicilio',d.domicilio||'—'],['Notas',d.notas||'—']];
+  var telLink=d.tel?'<a href="tel:'+esc(d.tel)+'" style="color:inherit;text-decoration:none;font-weight:500">'+esc(d.tel)+'</a>':'—';
+  var fields=[['Teléfono',telLink],['Correo',esc(d.email||'—')],['Nacimiento',esc(d.nacimiento||'—')],['Ocupación',esc(d.ocupacion||'—')],['Depósito',d.deposito?'Sí ✓':'No'],['Día de pago','Día '+d.diaPago],['Vence',esc(d.finStr||'—')+(d.finDate?' ('+diasLabel+')':'')],['Domicilio',esc(d.domicilio||'—')],['Notas',esc(d.notas||'—')]];
   document.getElementById('vi-info').innerHTML=fields.map(function(f){return '<div class="inf-row"><span class="text-muted">'+f[0]+'</span><span style="font-weight:500">'+f[1]+'</span></div>';}).join('');
   var a=d.aval||{};
-  var avalTelLink=a.tel?'<a href="tel:'+a.tel+'" style="color:inherit;text-decoration:none;font-weight:500">'+a.tel+'</a>':'—';
-  document.getElementById('vi-aval').innerHTML=a.nombre?'<div class="flex gap-8 mb-12">'+avEl(a.nombre,idx+1)+'<div><div style="font-weight:500">'+a.nombre+'</div><div class="text-muted">'+(a.parentesco||'—')+'</div></div></div>'+[['Tel',avalTelLink],['Correo',a.email||'—'],['Domicilio',(a.calle||'')+' '+(a.colonia||'')+' '+(a.ciudad||'')+', '+(a.estado||'').trim()||'—']].map(function(f){return '<div class="inf-row"><span class="text-muted">'+f[0]+'</span><span style="font-weight:500">'+f[1]+'</span></div>';}).join(''):'<div class="text-muted center" style="padding:1rem">Sin datos de aval</div>';
+  var avalTelLink=a.tel?'<a href="tel:'+esc(a.tel)+'" style="color:inherit;text-decoration:none;font-weight:500">'+esc(a.tel)+'</a>':'—';
+  var avalDom=esc((a.calle||'')+' '+(a.colonia||'')+' '+(a.ciudad||'')+', '+(a.estado||'').trim()||'—');
+  document.getElementById('vi-aval').innerHTML=a.nombre?'<div class="flex gap-8 mb-12">'+avEl(a.nombre,idx+1)+'<div><div style="font-weight:500">'+esc(a.nombre)+'</div><div class="text-muted">'+esc(a.parentesco||'—')+'</div></div></div>'+[['Tel',avalTelLink],['Correo',esc(a.email||'—')],['Domicilio',avalDom]].map(function(f){return '<div class="inf-row"><span class="text-muted">'+f[0]+'</span><span style="font-weight:500">'+f[1]+'</span></div>';}).join(''):'<div class="text-muted center" style="padding:1rem">Sin datos de aval</div>';
   var contractMonths=getContractMonths(d),hh='';
   if(!contractMonths.length){hh='<div class="text-muted" style="padding:8px 0">Sin fechas de contrato.</div>';}
   else{hh='<div class="hist-grid" style="grid-template-columns:repeat('+Math.min(contractMonths.length,6)+',1fr)">';contractMonths.forEach(function(cm){var p=PAGOS[d.num]&&PAGOS[d.num][cm.key];hh+='<div class="hist-cell '+(p&&p.pagado?'hist-pagado':'hist-vacio')+'" style="cursor:pointer" onclick="toggleHistPago('+d.num+','+cm.key+')" title="Click para marcar/desmarcar"><div style="font-weight:500;font-size:11px">'+(p&&p.pagado?'✓':'—')+'</div><div style="font-size:10px">'+cm.label+'</div></div>';});hh+='</div>';}
@@ -1386,7 +1389,7 @@ function renderBitacora(){
   var d=DEPTOS[_bitacoraIdx];if(!d)return;
   var list=document.getElementById('bitacora-list');if(!list)return;
   var notas=d.bitacora||[];
-  list.innerHTML=notas.length?notas.map(function(n,i){return '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f0f0ee"><div style="flex:1"><div style="font-size:13px">'+n.texto+'</div><div style="font-size:11px;color:#999;margin-top:2px">'+n.fecha+'</div></div><button onclick="eliminarBitacora('+i+')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:14px;padding:0;flex-shrink:0" title="Eliminar">✕</button></div>';}).join(''):'<div class="text-muted" style="font-size:13px;padding:8px 0">Sin notas registradas.</div>';
+  list.innerHTML=notas.length?notas.map(function(n,i){return '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f0f0ee"><div style="flex:1"><div style="font-size:13px">'+esc(n.texto)+'</div><div style="font-size:11px;color:#999;margin-top:2px">'+esc(n.fecha)+'</div></div><button onclick="eliminarBitacora('+i+')" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:14px;padding:0;flex-shrink:0" title="Eliminar">✕</button></div>';}).join(''):'<div class="text-muted" style="font-size:13px;padding:8px 0">Sin notas registradas.</div>';
 }
 
 // ── Recalcular bolsas ──────────────────────────────────────────────────────
