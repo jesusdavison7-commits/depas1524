@@ -715,10 +715,16 @@ function marcarTransferido(quien){
   var mi=MEX_MES,f=calcFinMes(mi);
   if(!FIN_HIST[mi])FIN_HIST[mi]={jesusTransferido:false,carlitosTransferido:false};
   var antes=FIN_HIST[mi][quien+'Transferido'];
+  var monto=quien==='jesus'?f.jesus:f.carlitos;
+  var nombreQ=quien==='jesus'?'Jesús':'Carlitos';
+  if(antes){
+    if(!confirm('¿Desmarcar transferencia de '+nombreQ+'? Esto restará '+fmt(monto)+' de su bolsa.'))return;
+  } else {
+    if(!confirm('¿Marcar como transferido? Esto sumará '+fmt(monto)+' a la bolsa de '+nombreQ+'.'))return;
+  }
   FIN_HIST[mi][quien+'Transferido']=!antes;
-  // Sumar a la bolsa al transferir, restar si se desmarca
-  if(quien==='jesus') BOLSA_JESUS=Math.max(0, antes ? BOLSA_JESUS-f.jesus : BOLSA_JESUS+f.jesus);
-  else if(quien==='carlitos') BOLSA_CARLITOS=Math.max(0, antes ? BOLSA_CARLITOS-f.carlitos : BOLSA_CARLITOS+f.carlitos);
+  if(quien==='jesus') BOLSA_JESUS=Math.max(0, antes ? BOLSA_JESUS-monto : BOLSA_JESUS+monto);
+  else if(quien==='carlitos') BOLSA_CARLITOS=Math.max(0, antes ? BOLSA_CARLITOS-monto : BOLSA_CARLITOS+monto);
   try{saveFinHist();}catch(e){}
   renderFinanzas();
 }
@@ -726,10 +732,16 @@ function toggleTransferido(mi,quien){
   var f=calcFinMes(mi);
   if(!FIN_HIST[mi])FIN_HIST[mi]={jesus:f.jesus,carlitos:f.carlitos,jesusTransferido:false,carlitosTransferido:false};
   var antes=FIN_HIST[mi][quien+'Transferido'];
+  var monto=quien==='jesus'?f.jesus:f.carlitos;
+  var nombreQ=quien==='jesus'?'Jesús':'Carlitos';
+  if(antes){
+    if(!confirm('¿Desmarcar transferencia de '+nombreQ+'? Esto restará '+fmt(monto)+' de su bolsa.'))return;
+  } else {
+    if(!confirm('¿Marcar como transferido? Esto sumará '+fmt(monto)+' a la bolsa de '+nombreQ+'.'))return;
+  }
   FIN_HIST[mi][quien+'Transferido']=!antes;
-  // Sumar a la bolsa al transferir, restar si se desmarca
-  if(quien==='jesus') BOLSA_JESUS=Math.max(0, antes ? BOLSA_JESUS-f.jesus : BOLSA_JESUS+f.jesus);
-  else if(quien==='carlitos') BOLSA_CARLITOS=Math.max(0, antes ? BOLSA_CARLITOS-f.carlitos : BOLSA_CARLITOS+f.carlitos);
+  if(quien==='jesus') BOLSA_JESUS=Math.max(0, antes ? BOLSA_JESUS-monto : BOLSA_JESUS+monto);
+  else if(quien==='carlitos') BOLSA_CARLITOS=Math.max(0, antes ? BOLSA_CARLITOS-monto : BOLSA_CARLITOS+monto);
   try{saveFinHist();}catch(e){}
   renderFinanzas();
 }
