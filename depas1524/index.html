@@ -23,8 +23,8 @@
       <h1>Depas 1524</h1>
       <p>Las Memorias · Los Mochis, Sinaloa</p>
     </div>
-    <div class="form-group"><label>Correo electrónico</label><input type="email" id="login-email" placeholder="correo@ejemplo.com"></div>
-    <div class="form-group"><label>Contraseña</label><input type="password" id="login-pass" placeholder="••••••••"></div>
+    <div class="form-group"><label>Usuario</label><input type="text" id="login-user" placeholder="jesus / carlos" autocomplete="username" autocapitalize="none"></div>
+    <div class="form-group"><label>Contraseña</label><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"></div>
     <div id="login-error" class="error-msg"></div>
     <button class="btn btn-primary btn-full" onclick="doLogin()"><i class="ti ti-login"></i> Entrar</button>
   </div>
@@ -310,7 +310,6 @@
             <!-- Botones generar siempre visibles -->
             <div style="display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid #f0f0ee">
               <button class="btn btn-docx" id="btn-gen-docx" onclick="genContrato('docx')" style="flex:1"><i class="ti ti-file-word"></i> Generar .docx</button>
-              <button class="btn btn-pdf" id="btn-gen-pdf" onclick="genContrato('pdf')" style="flex:1"><i class="ti ti-file-type-pdf"></i> Generar PDF</button>
             </div>
             <div id="contrato-gen-msg" style="margin-top:8px"></div>
           </div>

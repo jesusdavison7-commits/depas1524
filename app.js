@@ -25,15 +25,20 @@ auth.onAuthStateChanged(function(user) {
 });
 
 function doLogin() {
-  var email = document.getElementById('login-email').value.trim();
+  var user  = document.getElementById('login-user').value.trim().toLowerCase();
   var pass  = document.getElementById('login-pass').value;
   var err   = document.getElementById('login-error');
   err.textContent = '';
+  if(!user){err.textContent='Ingresa tu nombre de usuario';return;}
+  var email = user + '@depas1524.app';
   auth.signInWithEmailAndPassword(email, pass).catch(function() {
-    err.textContent = 'Correo o contraseña incorrectos';
+    err.textContent = 'Usuario o contraseña incorrectos';
   });
 }
 function doLogout() { auth.signOut(); }
+document.getElementById('login-user').addEventListener('keydown', function(e) {
+  if(e.key==='Enter') document.getElementById('login-pass').focus();
+});
 document.getElementById('login-pass').addEventListener('keydown', function(e) {
   if(e.key==='Enter') doLogin();
 });
