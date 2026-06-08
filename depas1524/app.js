@@ -1053,9 +1053,7 @@ function editarInq(idx){
   document.getElementById('a-col').value=a.colonia||'';document.getElementById('a-ciudad').value=a.ciudad||'';document.getElementById('a-estado').value=a.estado||'';
   document.getElementById('a-cp').value=a.cp||'';document.getElementById('a-prop').value=a.propiedad||'Sí';document.getElementById('a-prop-dir').value=a.propDir||'';
   document.getElementById('a-notas').value=a.notas||'';
-  var ineInqPrev=document.getElementById('ine-inq-prev'),ineAvalPrev=document.getElementById('ine-aval-prev');
-  if(ineInqPrev)ineInqPrev.innerHTML=d.ineInqUrl?'<img src="'+d.ineInqUrl+'" class="ine-preview">':'';
-  if(ineAvalPrev)ineAvalPrev.innerHTML=d.ineAvalUrl?'<img src="'+d.ineAvalUrl+'" class="ine-preview">':'';
+  _inePanelEditArea('inq');_inePanelEditArea('aval');
   resetTabsG('mi-tabs');
   openModal('modal-inq');
 }
@@ -1147,6 +1145,31 @@ function verInq(idx){
   resetTabsG('vi-tabs');openModal('modal-ver');
 }
 
+// ── INE — modal Editar ────────────────────────────────────────────────────
+function _inePanelEditArea(tipo){
+  var d=DEPTOS[editIdx];if(!d)return;
+  var url=tipo==='inq'?d.ineInqUrl:d.ineAvalUrl;
+  var el=document.getElementById('ine-'+tipo+'-prev');if(!el)return;
+  if(url){
+    el.innerHTML='<img src="'+url+'" class="ine-preview" style="margin-bottom:8px"><div style="display:flex;gap:6px;margin-top:4px"><button class="btn btn-sm" onclick="descargarINEEdit(\''+tipo+'\')"><i class="ti ti-download"></i> Descargar</button><button class="btn btn-sm btn-danger" onclick="borrarINEEdit(\''+tipo+'\')"><i class="ti ti-trash"></i> Borrar</button></div>';
+  } else {
+    el.innerHTML='';
+  }
+}
+function descargarINEEdit(tipo){
+  var d=DEPTOS[editIdx];if(!d)return;
+  var url=tipo==='inq'?d.ineInqUrl:d.ineAvalUrl;if(!url)return;
+  var a=document.createElement('a');
+  a.href=url;a.download='INE_'+d.nombre.replace(/\s+/g,'_')+'_'+(tipo==='inq'?'inquilino':'aval')+'.jpg';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+function borrarINEEdit(tipo){
+  if(!confirm('¿Borrar foto del INE?'))return;
+  var d=DEPTOS[editIdx];if(!d)return;
+  if(tipo==='inq')d.ineInqUrl='';else d.ineAvalUrl='';
+  saveDepto(d);_inePanelEditArea(tipo);
+}
+
 // ── INE — solo subir foto, sin IA ──────────────────────────────────────────
 function subirINEStorage(file,tipo,deptoNum){
   var stId='ine-'+tipo+'-st';
@@ -1168,15 +1191,17 @@ function subirINEStorage(file,tipo,deptoNum){
 }
 function leerINE(event,tipo){
   var file=event.target.files[0];if(!file)return;
-  // Mostrar preview instantáneo
-  var url=URL.createObjectURL(file);
-  var prevEl=document.getElementById('ine-'+tipo+'-prev');
-  if(prevEl)prevEl.innerHTML='<img src="'+url+'" class="ine-preview">';
   var stEl=document.getElementById('ine-'+tipo+'-st');
-  if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#6b6b6b;padding:4px 0">Guardando respaldo…</div>';
-  // Subir a Firebase Storage en background
-  var deptoNum=DEPTOS[editIdx]?DEPTOS[editIdx].num:'x';
-  subirINEStorage(file,tipo,deptoNum);
+  if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#6b6b6b;padding:4px 0">Guardando…</div>';
+  var reader=new FileReader();
+  reader.onload=function(){
+    var d=DEPTOS[editIdx];if(!d)return;
+    if(tipo==='inq')d.ineInqUrl=reader.result;else d.ineAvalUrl=reader.result;
+    saveDepto(d);
+    _inePanelEditArea(tipo);
+    if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#085041;padding:4px 0">✓ Guardado</div>';
+  };
+  reader.readAsDataURL(file);
 }
 var _tmpIneInq='', _tmpIneAval='';
 function leerINEContrato(event,tipo){
