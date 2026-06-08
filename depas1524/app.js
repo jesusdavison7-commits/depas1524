@@ -1080,6 +1080,50 @@ function guardarInq(){
   var obj={num:num,nombre:nombre,renta:renta,diaPago:dia,contrato:contrato,finDate:finDate,finStr:finStr,deposito:document.getElementById('f-dep').value==='Sí, pagado',tel:document.getElementById('f-tel').value,email:document.getElementById('f-email').value,curp:document.getElementById('f-curp').value,nacimiento:document.getElementById('f-nac').value,ocupacion:document.getElementById('f-ocup').value,domicilio:document.getElementById('f-dom').value,notas:document.getElementById('f-notas').value,ineInqUrl:DEPTOS[editIdx].ineInqUrl||'',ineAvalUrl:DEPTOS[editIdx].ineAvalUrl||'',bitacora:DEPTOS[editIdx].bitacora||[],aval:aval};
   DEPTOS[editIdx]=obj;saveDepto(obj);closeModal('modal-inq');renderAll();
 }
+function _inePanel(tipo,d,idx){
+  var label=tipo==='inq'?'INE inquilino':'INE aval';
+  var url=tipo==='inq'?d.ineInqUrl:d.ineAvalUrl;
+  var html='<div><div class="section-label" style="margin-top:0">'+label+'</div>';
+  if(url){
+    html+='<img src="'+url+'" class="ine-preview" style="margin-bottom:8px">';
+    html+='<div style="display:flex;gap:6px;margin-top:4px">';
+    html+='<button class="btn btn-sm" onclick="descargarINE(\''+tipo+'\','+idx+')"><i class="ti ti-download"></i> Descargar</button>';
+    html+='<button class="btn btn-sm btn-danger" onclick="borrarINE(\''+tipo+'\','+idx+')"><i class="ti ti-trash"></i> Borrar</button>';
+    html+='</div>';
+  } else {
+    html+='<div style="padding:12px 0">';
+    html+='<label class="btn btn-sm" style="cursor:pointer"><i class="ti ti-upload"></i> Subir foto <input type="file" accept="image/*" style="display:none" onchange="subirINEVer(event,\''+tipo+'\','+idx+')"></label>';
+    html+='</div>';
+  }
+  html+='</div>';
+  return html;
+}
+function descargarINE(tipo,idx){
+  var d=DEPTOS[idx];if(!d)return;
+  var url=tipo==='inq'?d.ineInqUrl:d.ineAvalUrl;if(!url)return;
+  var a=document.createElement('a');
+  a.href=url;
+  a.download='INE_'+d.nombre.replace(/\s+/g,'_')+'_'+(tipo==='inq'?'inquilino':'aval')+'.jpg';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+function borrarINE(tipo,idx){
+  if(!confirm('¿Borrar foto del INE?'))return;
+  var d=DEPTOS[idx];if(!d)return;
+  if(tipo==='inq')d.ineInqUrl='';else d.ineAvalUrl='';
+  saveDepto(d);
+  document.getElementById('vi-ine').innerHTML=_inePanel('inq',d,idx)+_inePanel('aval',d,idx);
+}
+function subirINEVer(event,tipo,idx){
+  var file=event.target.files[0];if(!file)return;
+  var d=DEPTOS[idx];if(!d)return;
+  var reader=new FileReader();
+  reader.onload=function(){
+    if(tipo==='inq')d.ineInqUrl=reader.result;else d.ineAvalUrl=reader.result;
+    saveDepto(d);
+    document.getElementById('vi-ine').innerHTML=_inePanel('inq',d,idx)+_inePanel('aval',d,idx);
+  };
+  reader.readAsDataURL(file);
+}
 function verInq(idx){
   var d=DEPTOS[idx];
   document.getElementById('vi-av').className='avatar-lg '+AVS[idx%5];document.getElementById('vi-av').textContent=avI(d.nombre);
@@ -1098,7 +1142,7 @@ function verInq(idx){
   if(!contractMonths.length){hh='<div class="text-muted" style="padding:8px 0">Sin fechas de contrato.</div>';}
   else{hh='<div class="hist-grid" style="grid-template-columns:repeat('+Math.min(contractMonths.length,6)+',1fr)">';contractMonths.forEach(function(cm){var p=PAGOS[d.num]&&PAGOS[d.num][cm.key];hh+='<div class="hist-cell '+(p&&p.pagado?'hist-pagado':'hist-vacio')+'" style="cursor:pointer" onclick="toggleHistPago('+d.num+','+cm.key+')" title="Click para marcar/desmarcar"><div style="font-weight:500;font-size:11px">'+(p&&p.pagado?'✓':'—')+'</div><div style="font-size:10px">'+cm.label+'</div></div>';});hh+='</div>';}
   document.getElementById('vi-hist').innerHTML=hh;
-  document.getElementById('vi-ine').innerHTML='<div><div class="section-label" style="margin-top:0">INE inquilino</div>'+(d.ineInqUrl?'<img src="'+d.ineInqUrl+'" class="ine-preview">':'<div class="text-muted center" style="padding:1rem">Sin imagen</div>')+'</div><div><div class="section-label" style="margin-top:0">INE aval</div>'+(d.ineAvalUrl?'<img src="'+d.ineAvalUrl+'" class="ine-preview">':'<div class="text-muted center" style="padding:1rem">Sin imagen</div>')+'</div>';
+  document.getElementById('vi-ine').innerHTML=_inePanel('inq',d,idx)+_inePanel('aval',d,idx);
   _bitacoraIdx=idx;renderBitacora();
   resetTabsG('vi-tabs');openModal('modal-ver');
 }
