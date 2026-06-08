@@ -166,9 +166,10 @@ function totalSrvEdificio(mi) {
   var internet=s.internet.pagado?s.internet.monto:0;
   var agua=s.agua.pagado?s.agua.monto:0;
   var cfe=(s.cfe&&s.cfe.pagado)?s.cfe.monto:0;
-  return internet+agua+cfe;
+  var celular=s.celular?s.celular.monto:0; // gasto compartido, sale del pozo común
+  return internet+agua+cfe+celular;
 }
-function totalSrvJesus(mi) { var s=getSrv(mi);return s.internetPinos.monto+(s.celular?s.celular.monto:0); }
+function totalSrvJesus(mi) { var s=getSrv(mi);return s.internetPinos.monto; } // solo Pinos es cobro a Carlitos
 function calcFinMes(mi) {
   var cob=cobradoMes(mi),srv=getSrv(mi);
   var limp=srv.limpieza.pagado?srv.limpieza.monto:0;
@@ -577,8 +578,8 @@ function renderFinanzas(){
   if(gastosLines){gastosLines.innerHTML=gastosMes.map(function(g){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;color:#6b6b6b;border-top:1px solid #ececea"><span>'+g.desc+'</span><span style="color:#c0392b;font-weight:500">-'+fmt(g.monto)+'</span></div>';}).join('');}
   // Bolsa mantenimiento: valor manual controlado por el usuario
   setT('bolsa-jesus-val',fmt(BOLSA_JESUS));setT('bolsa-carlitos-val',fmt(BOLSA_CARLITOS));setT('bolsa-mant-val',fmt(BOLSA_MANT));
-  setT('f-jesus-det','25% neto ('+fmt(f.neto*0.25)+') + cobro a Carlitos: pinos '+fmt(srv.internetPinos.monto)+' + celular '+fmt(srv.celular?srv.celular.monto:0));
-  setT('f-carlitos-det','75% neto ('+fmt(f.neto*0.75)+') − pinos '+fmt(srv.internetPinos.monto)+' − celular '+fmt(srv.celular?srv.celular.monto:0));
+  setT('f-jesus-det','25% neto ('+fmt(f.neto*0.25)+') + cobro a Carlitos por pinos '+fmt(srv.internetPinos.monto));
+  setT('f-carlitos-det','75% neto ('+fmt(f.neto*0.75)+') − pinos '+fmt(srv.internetPinos.monto));
   var fh=FIN_HIST[mi]||{};
   var btnJ=document.getElementById('btn-transfer-jesus');var lblJ=document.getElementById('lbl-transfer-jesus');
   var btnC=document.getElementById('btn-transfer-carlitos');var lblC=document.getElementById('lbl-transfer-carlitos');
