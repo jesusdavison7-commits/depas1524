@@ -951,10 +951,52 @@ function genContrato(formato){
   }
 }
 function genPDFNativo(nom,av,num,dur,ini,fin,monto){
-  function fD(iso){if(!iso)return'___';var d=new Date(iso+'T12:00:00');return d.getDate()+' de '+MS_FULL[d.getMonth()]+' de '+d.getFullYear();}
+  function fD(iso){
+    if(!iso||!iso.match(/^\d{4}-\d{2}-\d{2}$/))return'_______________';
+    var d=new Date(iso+'T12:00:00');
+    if(isNaN(d.getTime()))return'_______________';
+    return d.getDate()+' de '+MS_FULL[d.getMonth()]+' de '+d.getFullYear();
+  }
   var piso=num<=4?'Primer Piso (Planta Baja)':'Segundo Piso (Planta Alta)';
-  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><style>body{font-family:Arial,sans-serif;font-size:11pt;line-height:1.6;margin:2cm;color:#000}h2{text-align:center;font-size:13pt;margin-bottom:16px}p{margin-bottom:10px;text-align:justify}.c{margin-bottom:12px}.c strong{display:block}.firma{margin-top:40px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;text-align:center}.fl{border-top:1px solid #000;padding-top:6px;margin-top:40px;font-size:10pt}</style></head><body><h2>CONTRATO DE ARRENDAMIENTO</h2><p>En Los Mochis, Sinaloa, el <strong>'+fD(ini)+'</strong>, el C. <strong>RAMÓN ADOLFO ARMENTA RODRÍGUEZ</strong> (arrendador) y el C. <strong>'+nom.toUpperCase()+'</strong> (arrendatario) celebran:</p><div class="c"><strong>PRIMERA.- OBJETO.</strong> Departamento No. <strong>'+num+'</strong>, '+piso+', Av. 10 de Mayo 1524 Oriente, Las Memorias, Los Mochis, Sinaloa.</div><div class="c"><strong>SEGUNDA.- VIGENCIA.</strong> <strong>'+dur+'</strong>, del <strong>'+fD(ini)+'</strong> al <strong>'+fD(fin)+'</strong>.</div><div class="c"><strong>TERCERA.- RENTA.</strong> <strong>$'+monto.toLocaleString('es-MX')+'.00 M.N.</strong> mensuales por adelantado.</div><div class="c"><strong>CUARTA.- SERVICIOS.</strong> Agua y luz por cuenta del arrendatario. Internet incluido.</div><div class="c"><strong>QUINTA.- DEPÓSITO.</strong> Un mes de renta como garantía.</div><div class="c"><strong>SEXTA.- USO.</strong> Exclusivamente habitacional.</div><div class="c"><strong>SÉPTIMA.- CONSERVACIÓN.</strong> El arrendatario conservará el inmueble en buen estado.</div><div class="c"><strong>OCTAVA.- PROHIBICIONES.</strong> Prohibido subarrendar o modificar estructuralmente.</div><div class="c"><strong>NOVENA.- RESCISIÓN.</strong> Por incumplimiento de obligaciones.</div><div class="c"><strong>DÉCIMA.- AVAL.</strong> El C. <strong>'+av.toUpperCase()+'</strong> como aval solidario.</div><div class="c"><strong>DÉCIMA PRIMERA.- JURISDICCIÓN.</strong> Tribunales de Los Mochis, Sinaloa.</div><p>Firman el <strong>'+fD(ini)+'</strong>.</p><div class="firma"><div><div class="fl">RAMÓN ADOLFO ARMENTA RODRÍGUEZ<br><small>Arrendador</small></div></div><div><div class="fl">'+nom.toUpperCase()+'<br><small>Arrendatario</small></div></div><div><div class="fl">'+av.toUpperCase()+'<br><small>Aval</small></div></div></div></body></html>';
-  var w=window.open('','_blank');w.document.write(html);w.document.close();setTimeout(function(){w.print();},500);
+  var montoFmt='$'+Number(monto).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})+' M.N.';
+  var css=[
+    'body{font-family:Arial,sans-serif;font-size:11pt;line-height:1.65;margin:2.5cm 2.5cm 2cm 2.5cm;color:#000}',
+    'h2{text-align:center;font-size:13pt;font-weight:bold;letter-spacing:.5px;margin-bottom:20px;text-transform:uppercase}',
+    'p{margin:0 0 10px 0;text-align:justify}',
+    '.cl{margin-bottom:12px;text-align:justify}',
+    '.ct{font-weight:bold}',
+    '.firma-wrap{margin-top:60px;display:flex;justify-content:space-between;gap:20px}',
+    '.firma-item{flex:1;text-align:center}',
+    '.firma-line{border-top:1px solid #000;padding-top:6px;margin-top:50px;font-size:9.5pt;line-height:1.4}',
+    '.firma-rol{font-size:9pt;color:#444}',
+    '@media print{body{margin:1.5cm} @page{margin:1.5cm}}'
+  ].join('');
+  var body=[
+    '<h2>CONTRATO DE ARRENDAMIENTO</h2>',
+    '<p>En Los Mochis, Sinaloa, el <strong>'+fD(ini)+'</strong>, el C. <strong>RAMÓN ADOLFO ARMENTA RODRÍGUEZ</strong> (arrendador) y el C. <strong>'+nom.toUpperCase()+'</strong> (arrendatario) celebran:</p>',
+    '<div class="cl"><span class="ct">PRIMERA.- OBJETO.</span> Departamento No. <strong>'+num+'</strong>, '+piso+', Av. 10 de Mayo 1524 Oriente, Las Memorias, Los Mochis, Sinaloa.</div>',
+    '<div class="cl"><span class="ct">SEGUNDA.- VIGENCIA.</span> <strong>'+dur+'</strong>, del <strong>'+fD(ini)+'</strong> al <strong>'+fD(fin)+'</strong>.</div>',
+    '<div class="cl"><span class="ct">TERCERA.- RENTA.</span> <strong>'+montoFmt+'</strong> mensuales por adelantado.</div>',
+    '<div class="cl"><span class="ct">CUARTA.- SERVICIOS.</span> Agua y luz por cuenta del arrendatario. Internet incluido.</div>',
+    '<div class="cl"><span class="ct">QUINTA.- DEPÓSITO.</span> Un mes de renta como garantía.</div>',
+    '<div class="cl"><span class="ct">SEXTA.- USO.</span> Exclusivamente habitacional.</div>',
+    '<div class="cl"><span class="ct">SÉPTIMA.- CONSERVACIÓN.</span> El arrendatario conservará el inmueble en buen estado.</div>',
+    '<div class="cl"><span class="ct">OCTAVA.- PROHIBICIONES.</span> Prohibido subarrendar o modificar estructuralmente el inmueble.</div>',
+    '<div class="cl"><span class="ct">NOVENA.- RESCISIÓN.</span> Por incumplimiento de cualquiera de las obligaciones pactadas.</div>',
+    '<div class="cl"><span class="ct">DÉCIMA.- AVAL.</span> El C. <strong>'+av.toUpperCase()+'</strong> funge como aval solidario del arrendatario.</div>',
+    '<div class="cl"><span class="ct">DÉCIMA PRIMERA.- JURISDICCIÓN.</span> Para la interpretación y cumplimiento del presente contrato, las partes se someten a los Tribunales de Los Mochis, Sinaloa, renunciando a cualquier otro fuero.</div>',
+    '<p style="margin-top:16px">Firman el <strong>'+fD(ini)+'</strong>.</p>',
+    '<div class="firma-wrap">',
+    '  <div class="firma-item"><div class="firma-line">RAMÓN ADOLFO ARMENTA RODRÍGUEZ<br><span class="firma-rol">Arrendador</span></div></div>',
+    '  <div class="firma-item"><div class="firma-line">'+nom.toUpperCase()+'<br><span class="firma-rol">Arrendatario</span></div></div>',
+    '  <div class="firma-item"><div class="firma-line">'+av.toUpperCase()+'<br><span class="firma-rol">Aval</span></div></div>',
+    '</div>'
+  ].join('');
+  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Contrato Depto '+num+'</title><style>'+css+'</style></head><body>'+body+'</body></html>';
+  var w=window.open('','_blank');
+  if(!w){showToast('⚠ Permite ventanas emergentes para generar el PDF','error');return;}
+  w.document.write(html);w.document.close();
+  setTimeout(function(){w.print();},600);
   registrarContrato(nom,num,'PDF');
 }
 function registrarContrato(nom,num,formato){
