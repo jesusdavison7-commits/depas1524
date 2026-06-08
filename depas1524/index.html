@@ -243,7 +243,6 @@
           <div class="card" style="padding-top:0">
             <div class="tabs" id="ctabs-nav" style="margin:0 -16px 16px;padding:0 16px;border-bottom:1px solid #f0f0ee">
               <button class="tab active" onclick="swTab('ctab-datos','ctabs',this)"><i class="ti ti-file-description" style="font-size:13px"></i> Contrato</button>
-              <button class="tab" onclick="swTab('ctab-ine','ctabs',this)"><i class="ti ti-id" style="font-size:13px"></i> INE</button>
             </div>
             <div id="ctabs">
 
@@ -272,6 +271,28 @@
                   <div style="margin-top:10px">
                     <div class="form-row"><div class="form-group"><label>Teléfono</label><input type="text" id="c-tel"></div><div class="form-group"><label>Correo</label><input type="text" id="c-email"></div></div>
                     <div class="form-row"><div class="form-group"><label>Fecha de nacimiento</label><input type="date" id="c-nac"></div><div class="form-group"><label>Domicilio de origen</label><input type="text" id="c-dom"></div></div>
+                    <!-- INE aquí mismo -->
+                    <div style="margin-top:12px;padding-top:10px;border-top:1px solid #f0f0ee">
+                      <div style="font-size:12px;color:#6b6b6b;margin-bottom:8px"><i class="ti ti-id"></i> Fotos de INE (opcionales)</div>
+                      <div class="ine-grid">
+                        <div><div class="section-label">INE inquilino</div>
+                          <div class="ine-zone" onclick="document.getElementById('c-ine-inq').click()">
+                            <input type="file" id="c-ine-inq" accept="image/*" style="display:none" onchange="leerINEContrato(event,'inq')">
+                            <i class="ti ti-id muted-icon" style="font-size:26px"></i>
+                            <div class="text-muted" style="font-size:12px;margin-top:4px">Subir INE</div>
+                          </div>
+                          <div id="c-ine-inq-prev"></div><div id="c-ine-inq-st"></div>
+                        </div>
+                        <div><div class="section-label">INE aval</div>
+                          <div class="ine-zone" onclick="document.getElementById('c-ine-aval').click()">
+                            <input type="file" id="c-ine-aval" accept="image/*" style="display:none" onchange="leerINEContrato(event,'aval')">
+                            <i class="ti ti-id muted-icon" style="font-size:26px"></i>
+                            <div class="text-muted" style="font-size:12px;margin-top:4px">Subir INE</div>
+                          </div>
+                          <div id="c-ine-aval-prev"></div><div id="c-ine-aval-st"></div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </details>
 
@@ -286,28 +307,6 @@
                 </div>
               </div>
 
-              <!-- Tab INE -->
-              <div id="ctab-ine" class="tab-panel">
-                <div class="info-note purple-note" style="margin-bottom:14px"><i class="ti ti-id"></i> Sube foto del INE para referencia. Llena los datos manualmente.</div>
-                <div class="ine-grid">
-                  <div><div class="section-label">INE inquilino</div>
-                    <div class="ine-zone" onclick="document.getElementById('c-ine-inq').click()">
-                      <input type="file" id="c-ine-inq" accept="image/*" style="display:none" onchange="leerINEContrato(event,'inq')">
-                      <i class="ti ti-id muted-icon" style="font-size:26px"></i>
-                      <div class="text-muted" style="font-size:12px;margin-top:4px">Subir INE</div>
-                    </div>
-                    <div id="c-ine-inq-prev"></div><div id="c-ine-inq-st"></div>
-                  </div>
-                  <div><div class="section-label">INE aval</div>
-                    <div class="ine-zone" onclick="document.getElementById('c-ine-aval').click()">
-                      <input type="file" id="c-ine-aval" accept="image/*" style="display:none" onchange="leerINEContrato(event,'aval')">
-                      <i class="ti ti-id muted-icon" style="font-size:26px"></i>
-                      <div class="text-muted" style="font-size:12px;margin-top:4px">Subir INE</div>
-                    </div>
-                    <div id="c-ine-aval-prev"></div><div id="c-ine-aval-st"></div>
-                  </div>
-                </div>
-              </div>
 
             </div>
 

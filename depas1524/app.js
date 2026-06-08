@@ -809,7 +809,10 @@ function darDeAlta(){
   var isNew=VACIOS.indexOf(dep)>-1;
   var existing=DEPTOS.find(function(d){return d.num===dep;});
   var prevBitacora=(existing&&existing.bitacora)||[];
-  var obj={num:dep,nombre:nom,renta:renta,diaPago:dia,contrato:contrato,finDate:finDate,finStr:finStr,deposito:true,tel:document.getElementById('c-tel').value,email:document.getElementById('c-email').value,curp:'',nacimiento:document.getElementById('c-nac').value,ocupacion:'',domicilio:document.getElementById('c-dom').value,notas:'',ineInqUrl:existing?existing.ineInqUrl||'':'',ineAvalUrl:existing?existing.ineAvalUrl||'':'',bitacora:prevBitacora,aval:{nombre:document.getElementById('c-aval').value,parentesco:'',tel:'',email:'',curp:'',calle:'',colonia:'',ciudad:'',estado:'',cp:'',propiedad:'Sí',propDir:'',notas:''}};
+  var ineInq=_tmpIneInq||(existing?existing.ineInqUrl||'':'');
+  var ineAval=_tmpIneAval||(existing?existing.ineAvalUrl||'':'');
+  _tmpIneInq='';_tmpIneAval='';
+  var obj={num:dep,nombre:nom,renta:renta,diaPago:dia,contrato:contrato,finDate:finDate,finStr:finStr,deposito:true,tel:document.getElementById('c-tel').value,email:document.getElementById('c-email').value,curp:'',nacimiento:document.getElementById('c-nac').value,ocupacion:'',domicilio:document.getElementById('c-dom').value,notas:'',ineInqUrl:ineInq,ineAvalUrl:ineAval,bitacora:prevBitacora,aval:{nombre:document.getElementById('c-aval').value,parentesco:'',tel:'',email:'',curp:'',calle:'',colonia:'',ciudad:'',estado:'',cp:'',propiedad:'Sí',propDir:'',notas:''}};
   if(existing){DEPTOS[DEPTOS.indexOf(existing)]=obj;}else{DEPTOS.push(obj);DEPTOS.sort(function(a,b){return a.num-b.num;});}
   var vi=VACIOS.indexOf(dep);if(vi>-1)VACIOS.splice(vi,1);if(!PAGOS[dep])PAGOS[dep]={};
   saveDepto(obj);
@@ -1131,14 +1134,22 @@ function leerINE(event,tipo){
   var deptoNum=DEPTOS[editIdx]?DEPTOS[editIdx].num:'x';
   subirINEStorage(file,tipo,deptoNum);
 }
+var _tmpIneInq='', _tmpIneAval='';
 function leerINEContrato(event,tipo){
   var file=event.target.files[0];if(!file)return;
   var prevId=tipo==='inq'?'c-ine-inq-prev':'c-ine-aval-prev';
   var url=URL.createObjectURL(file),prevEl=document.getElementById(prevId);
   if(prevEl)prevEl.innerHTML='<img src="'+url+'" class="ine-preview" style="width:100%;max-height:100px;object-fit:cover;border-radius:8px;margin-top:6px">';
-  // Subir a Storage usando el depto del formulario
-  var deptoNum=parseInt(document.getElementById('c-dep')?document.getElementById('c-dep').value:0)||0;
-  if(deptoNum)subirINEStorage(file,tipo,deptoNum);
+  // Guardar base64 temporalmente hasta que se dé de alta
+  var reader=new FileReader();
+  reader.onload=function(){
+    if(tipo==='inq')_tmpIneInq=reader.result;
+    else _tmpIneAval=reader.result;
+    var stId='c-ine-'+tipo+'-st';
+    var stEl=document.getElementById(stId);
+    if(stEl)stEl.innerHTML='<div style="font-size:11px;color:#085041;padding:2px 0">✓ Lista para guardar</div>';
+  };
+  reader.readAsDataURL(file);
 }
 
 function toggleBolsaEdit(quien,show){
@@ -1181,6 +1192,7 @@ function limpiarContrato(){
   var avalPrev=document.getElementById('c-ine-aval-prev');if(avalPrev)avalPrev.innerHTML='';
   var inqSt=document.getElementById('c-ine-inq-st');if(inqSt)inqSt.innerHTML='';
   var avalSt=document.getElementById('c-ine-aval-st');if(avalSt)avalSt.innerHTML='';
+  _tmpIneInq='';_tmpIneAval='';
   var msg=document.getElementById('contrato-gen-msg');if(msg)msg.innerHTML='';
   var elimBox=document.getElementById('elim-contrato-box');if(elimBox)elimBox.style.display='none';
   checkAltaBtn();prevContrato();
