@@ -1296,7 +1296,6 @@ function toggleHistPagoPinos(key){
   else{PINOS_PAGOS[key]={pagado:true,fecha:new Date().toISOString().split('T')[0]};}
   savePinosPagos();
   renderDashboard();renderDeptos();
-  verPinos();
 }
 
 function leerINEPinos(e,tipo){
