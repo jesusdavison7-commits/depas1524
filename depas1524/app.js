@@ -311,7 +311,7 @@ function showPage(id,btn) {
   var pg=document.getElementById('page-'+id); if(pg)pg.classList.add('active');
   if(btn)btn.classList.add('active');
   closeSidebar();
-  var renders={dashboard:renderDashboard,deptos:renderDeptos,pagos:renderPagos,servicios:renderServicios,finanzas:renderFinanzas,contratos:renderContratos,mantenimiento:renderMantenimiento,pinos:renderPinos};
+  var renders={dashboard:renderDashboard,deptos:renderDeptos,pagos:renderPagos,servicios:renderServicios,finanzas:renderFinanzas,contratos:renderContratos,mantenimiento:renderMantenimiento};
   if(renders[id])renders[id]();
 }
 function openModal(id) {
@@ -414,6 +414,21 @@ function renderDashboard() {
     tbody.innerHTML+='<tr style="'+rowStyle+'"><td><strong>Depto '+d.num+'</strong></td><td><div class="flex gap-8">'+avEl(d.nombre,i)+'<span>'+esc(d.nombre)+inmobTag+'</span></div></td><td class="text-muted">'+diaLabel+'</td><td>'+fmt(d.renta)+'</td><td>'+badge+'</td><td>'+accion+'</td></tr>';
   });
   VACIOS.forEach(function(n){tbody.innerHTML+='<tr><td><strong>Depto '+n+'</strong></td><td colspan="5" class="text-muted">Vacío</td></tr>';});
+  // Fila Los Pinos
+  if(PINOS.nombre){
+    var pmi=MEX_MES,pp=PINOS_PAGOS[pmi]||{};
+    var pbadge,paccion;
+    if(pp.pagado){
+      pbadge='<span class="badge badge-green">✓ Pagado'+(pp.fecha?' · '+fmtD(pp.fecha):'')+'</span>';
+      paccion='<button class="btn btn-xs btn-danger" onclick="desmarcarPagoPinos('+pmi+')"><i class="ti ti-rotate-left"></i> Deshacer</button>';
+    } else {
+      pbadge='<span class="badge badge-amber">Pendiente</span>';
+      paccion='<button class="btn btn-xs btn-primary" onclick="marcarPagoPinos('+pmi+')">Marcar pagado</button>';
+    }
+    tbody.innerHTML+='<tr style="background:#f9f6ff"><td><strong style="color:#6b21a8">🏠 Los Pinos</strong></td><td>'+esc(PINOS.nombre)+'</td><td class="text-muted">Día 5</td><td>'+fmt(PINOS.monto||22000)+'</td><td>'+pbadge+'</td><td>'+paccion+'</td></tr>';
+  } else {
+    tbody.innerHTML+='<tr style="background:#f9f6ff"><td><strong style="color:#6b21a8">🏠 Los Pinos</strong></td><td colspan="5" class="text-muted">Sin inquilino — <a href="#" onclick="showPage(\'contratos\',null);return false" style="color:#7c3aed">Registrar en Contratos</a></td></tr>';
+  }
 }
 
 // ── Deptos ─────────────────────────────────────────────────────────────────
@@ -448,6 +463,17 @@ function renderDeptos() {
     var avalNomTel=d.aval&&d.aval.nombre?(esc(d.aval.nombre)+(d.aval.tel?' · '+avalTel:'')):'—';
     list.innerHTML+='<div class="card" style="margin-bottom:.75rem;border-left:3px solid '+(ok?'#1D9E75':'#EF9F27')+';border-radius:0 12px 12px 0"><div class="flex" style="justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px"><div class="flex gap-8" style="cursor:pointer" onclick="verInq('+i+')"><div style="background:#f0f0f0;border-radius:8px;padding:4px 10px;font-size:18px;font-weight:600;color:#6b6b6b;min-width:40px;text-align:center">'+d.num+'</div>'+avEl(d.nombre,i,'avatar')+'<div><div style="font-weight:600;font-size:14px">'+esc(d.nombre)+'</div><div class="text-muted">'+esc(d.contrato)+' · '+fmt(d.renta)+'/mes · día '+d.diaPago+(d.finStr?' · vence '+esc(d.finStr):'')+'</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+pagosBadge+contratoTag+avalBadge+ineBadge+inmobBadge+(d.deposito?'<span class="badge badge-green">Dep. ✓</span>':'<span class="badge badge-red">Sin dep.</span>')+'<button class="btn btn-sm" onclick="editarInq('+i+')"><i class="ti ti-edit"></i> Editar</button></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;font-size:12px;border-top:1px solid #eee;padding-top:.75rem"><div><span class="text-muted">Teléfono</span><br>'+telHtml+'</div><div><span class="text-muted">Correo</span><br><strong>'+esc(d.email||'—')+'</strong></div><div><span class="text-muted">Ocupación</span><br><strong>'+esc(d.ocupacion||'—')+'</strong></div><div><span class="text-muted">Aval</span><br><span style="font-size:12px">'+avalNomTel+'</span></div></div></div>';
   });
+  // Tarjeta Los Pinos
+  var pc=document.getElementById('pinos-depto-card');if(!pc)return;
+  if(PINOS.nombre){
+    var pmi=MEX_MES,pp=PINOS_PAGOS[pmi]||{};
+    var pbadge=pp.pagado?'<span class="badge badge-green">✓ Pagado</span>':'<span class="badge badge-amber">Pendiente</span>';
+    var ptel=PINOS.tel?'<a href="tel:'+esc(PINOS.tel)+'" style="color:inherit;text-decoration:none;font-weight:600">'+esc(PINOS.tel)+'</a>':'<strong>—</strong>';
+    var pfin=PINOS.fin?'vence '+fmtD(PINOS.fin):'';
+    pc.innerHTML='<div class="card" style="border-left:3px solid #7c3aed;border-radius:0 12px 12px 0"><div class="flex" style="justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px"><div class="flex gap-8"><div style="background:#f3e8ff;border-radius:8px;padding:4px 10px;font-size:18px;min-width:40px;text-align:center">🏠</div><div><div style="font-weight:600;font-size:14px">'+esc(PINOS.nombre)+'  <span style="font-size:11px;background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:4px;padding:2px 7px">Los Pinos</span></div><div class="text-muted">'+(PINOS.dur||'1 año')+' · '+fmt(PINOS.monto||22000)+'/mes'+(pfin?' · '+pfin:'')+'</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+pbadge+'<button class="btn btn-sm" onclick="irAContratosPinos()"><i class="ti ti-edit"></i> Editar</button></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;font-size:12px;border-top:1px solid #eee;padding-top:.75rem"><div><span class="text-muted">Teléfono</span><br>'+ptel+'</div><div><span class="text-muted">Correo</span><br><strong>'+esc(PINOS.email||'—')+'</strong></div><div><span class="text-muted">Aval</span><br><strong>'+esc(PINOS.aval||'—')+'</strong></div></div></div>';
+  } else {
+    pc.innerHTML='<div class="card dashed-card"><div class="flex gap-8 center-content"><i class="ti ti-home muted-icon"></i><span class="text-muted">Los Pinos — sin inquilino · <a href="#" onclick="irAContratosPinos();return false" style="color:#7c3aed">Registrar</a></span></div></div>';
+  }
 }
 
 // ── Pagos ──────────────────────────────────────────────────────────────────
@@ -811,6 +837,7 @@ function renderContratos(){
     if(current&&vacios.indexOf(parseInt(current))>-1)depSel.value=current;
   }
   checkAltaBtn();prevContrato();
+  cargarFormPinos();
   var elimBox=document.getElementById('elim-contrato-box');if(elimBox)elimBox.style.display='none';
   // Historial inquilinos eliminados
   var hl=document.getElementById('inq-hist-list');if(!hl)return;
@@ -1056,6 +1083,83 @@ function registrarContrato(nom,num,formato){
 function savePinos(){return safeSave(db.collection('config').doc('pinos').set(PINOS),'pinos');}
 function savePinosPagos(){return safeSave(db.collection('config').doc('pinosPagos').set({pagos:PINOS_PAGOS}),'pinosPagos');}
 
+function mostrarBotonesContrato(tab){
+  var bd=document.getElementById('btns-depas'),bp=document.getElementById('btns-pinos');
+  if(bd)bd.style.display=tab==='depas'?'flex':'none';
+  if(bp)bp.style.display=tab==='pinos'?'flex':'none';
+}
+
+function checkPinosBtn(){
+  var nom=document.getElementById('p-nombre');
+  var box=document.getElementById('pinos-alta-box');
+  var elim=document.getElementById('pinos-elim-box');
+  if(!box)return;
+  var tieneInq=!!PINOS.nombre;
+  box.style.display=(nom&&nom.value.trim()&&!tieneInq)?'flex':'none';
+  if(elim)elim.style.display=tieneInq?'flex':'none';
+}
+
+function irAContratosPinos(){
+  showPage('contratos',null);
+  setTimeout(function(){
+    swTab('ctab-pinos','ctabs',document.querySelector('#ctabs-nav .tab:nth-child(2)'));
+    mostrarBotonesContrato('pinos');
+  },100);
+}
+
+function leerINEPinos(e,tipo){
+  var file=e.target.files[0];if(!file)return;
+  comprimirImagen(file,function(b64){
+    if(tipo==='inq'){PINOS.ineInqUrl=b64;document.getElementById('p-ine-inq-prev').innerHTML='<img src="'+b64+'" class="ine-preview" style="margin-top:6px">';}
+    else{PINOS.ineAvalUrl=b64;document.getElementById('p-ine-aval-prev').innerHTML='<img src="'+b64+'" class="ine-preview" style="margin-top:6px">';}
+  });
+}
+
+function darDeAltaPinos(){
+  var nom=document.getElementById('p-nombre').value.trim();
+  if(!nom){showToast('Ingresa el nombre del inquilino','error');return;}
+  PINOS={
+    nombre:nom,
+    aval:document.getElementById('p-aval').value.trim(),
+    monto:parseFloat(document.getElementById('p-monto').value)||22000,
+    dur:document.getElementById('p-dur').value,
+    ini:document.getElementById('p-ini').value,
+    fin:document.getElementById('p-fin').value,
+    tel:document.getElementById('p-tel').value,
+    email:document.getElementById('p-email').value,
+    ineInqUrl:PINOS.ineInqUrl||'',
+    ineAvalUrl:PINOS.ineAvalUrl||''
+  };
+  savePinos();
+  showToast('Los Pinos guardado','ok');
+  checkPinosBtn();
+  renderDeptos();renderDashboard();
+}
+
+function eliminarPinos(){
+  if(!confirm('¿Dar de baja al inquilino de Los Pinos?'))return;
+  PINOS={};PINOS_PAGOS={};
+  savePinos();savePinosPagos();
+  showToast('Inquilino de Los Pinos dado de baja','ok');
+  checkPinosBtn();
+  renderDeptos();renderDashboard();
+}
+
+function cargarFormPinos(){
+  if(!PINOS.nombre)return;
+  document.getElementById('p-nombre').value=PINOS.nombre||'';
+  document.getElementById('p-aval').value=PINOS.aval||'';
+  document.getElementById('p-monto').value=PINOS.monto||22000;
+  document.getElementById('p-dur').value=PINOS.dur||'UN AÑO';
+  document.getElementById('p-ini').value=PINOS.ini||'';
+  document.getElementById('p-fin').value=PINOS.fin||'';
+  document.getElementById('p-tel').value=PINOS.tel||'';
+  document.getElementById('p-email').value=PINOS.email||'';
+  if(PINOS.ineInqUrl)document.getElementById('p-ine-inq-prev').innerHTML='<img src="'+PINOS.ineInqUrl+'" class="ine-preview" style="margin-top:6px">';
+  if(PINOS.ineAvalUrl)document.getElementById('p-ine-aval-prev').innerHTML='<img src="'+PINOS.ineAvalUrl+'" class="ine-preview" style="margin-top:6px">';
+  checkPinosBtn();
+}
+
 function pFin(){
   var ini=document.getElementById('p-ini').value,dur=document.getElementById('p-dur').value;
   if(!ini)return;
@@ -1080,13 +1184,12 @@ function guardarPinos(){
 }
 
 function marcarPagoPinos(mi){
-  if(!PINOS_PAGOS[mi])PINOS_PAGOS[mi]={pagado:false};
   PINOS_PAGOS[mi]={pagado:true,fecha:new Date().toISOString().split('T')[0]};
-  savePinosPagos();renderPinos();
+  savePinosPagos();renderDashboard();renderDeptos();
 }
 function desmarcarPagoPinos(mi){
-  if(PINOS_PAGOS[mi])PINOS_PAGOS[mi]={pagado:false,fecha:''};
-  savePinosPagos();renderPinos();
+  PINOS_PAGOS[mi]={pagado:false,fecha:''};
+  savePinosPagos();renderDashboard();renderDeptos();
 }
 
 function renderPinos(){

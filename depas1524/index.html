@@ -42,7 +42,6 @@
       <button class="nav-item" onclick="showPage('finanzas',this)"><i class="ti ti-chart-bar"></i> Finanzas</button>
       <button class="nav-item" onclick="showPage('contratos',this)"><i class="ti ti-file-text"></i> Contratos</button>
       <button class="nav-item" onclick="showPage('mantenimiento',this)"><i class="ti ti-tool"></i> Mantenimiento</button>
-      <button class="nav-item" onclick="showPage('pinos',this)"><i class="ti ti-home"></i> Los Pinos</button>
     </nav>
     <div class="sidebar-footer"><div id="user-info" class="user-info"></div><button class="btn-logout" onclick="doLogout()"><i class="ti ti-logout"></i> Salir</button></div>
   </aside>
@@ -63,7 +62,7 @@
     <div id="page-deptos" class="page">
       <div class="page-header"><h2 class="page-title">Departamentos</h2><button class="btn btn-primary" onclick="irAContratos()"><i class="ti ti-file-text"></i> Nuevo contrato</button></div>
       <div id="depa-list"></div>
-      <div class="card dashed-card" style="margin-top:.5rem"><div class="flex gap-8 center-content"><i class="ti ti-building muted-icon"></i><span class="text-muted">Los Pinos — propiedad adicional, sin rentar actualmente</span></div></div>
+      <div id="pinos-depto-card" style="margin-top:.5rem"></div>
     </div>
 
     <div id="page-pagos" class="page">
@@ -240,7 +239,8 @@
           <!-- Tabs principal -->
           <div class="card" style="padding-top:0">
             <div class="tabs" id="ctabs-nav" style="margin:0 -16px 16px;padding:0 16px;border-bottom:1px solid #f0f0ee">
-              <button class="tab active" onclick="swTab('ctab-datos','ctabs',this)"><i class="ti ti-file-description" style="font-size:13px"></i> Contrato</button>
+              <button class="tab active" onclick="swTab('ctab-datos','ctabs',this);mostrarBotonesContrato('depas')"><i class="ti ti-file-description" style="font-size:13px"></i> Depas</button>
+              <button class="tab" onclick="swTab('ctab-pinos','ctabs',this);mostrarBotonesContrato('pinos')"><i class="ti ti-home" style="font-size:13px"></i> Los Pinos</button>
             </div>
             <div id="ctabs">
 
@@ -309,14 +309,70 @@
                 </div>
               </div>
 
+              <!-- Tab Los Pinos -->
+              <div id="ctab-pinos" class="tab-panel">
+                <div class="form-row">
+                  <div class="form-group"><label>Nombre inquilino</label><input type="text" id="p-nombre" placeholder="Nombre completo" oninput="checkPinosBtn()"></div>
+                  <div class="form-group"><label>Nombre aval</label><input type="text" id="p-aval" placeholder="Nombre completo"></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label>Renta mensual ($)</label><input type="number" id="p-monto" value="22000"></div>
+                  <div class="form-group"><label>Duración</label><select id="p-dur" onchange="pFin()"><option value="UN AÑO">1 año</option><option value="SEIS MESES">6 meses</option><option value="DOS AÑOS">2 años</option></select></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label>Fecha inicio</label><input type="date" id="p-ini" onchange="pFin()"></div>
+                  <div class="form-group"><label>Fecha fin (auto)</label><input type="date" id="p-fin" readonly></div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group"><label>Teléfono</label><input type="text" id="p-tel"></div>
+                  <div class="form-group"><label>Correo</label><input type="text" id="p-email"></div>
+                </div>
+                <!-- INE -->
+                <details style="margin-top:8px">
+                  <summary style="cursor:pointer;font-size:12px;color:#6b6b6b;padding:6px 0;user-select:none">INE (opcional)</summary>
+                  <div style="margin-top:10px">
+                    <div class="ine-grid">
+                      <div><div class="section-label">INE inquilino</div>
+                        <div class="ine-zone" onclick="document.getElementById('p-ine-inq').click()">
+                          <input type="file" id="p-ine-inq" accept="image/*" style="display:none" onchange="leerINEPinos(event,'inq')">
+                          <i class="ti ti-id muted-icon" style="font-size:26px"></i>
+                          <div class="text-muted" style="font-size:12px;margin-top:4px">Subir INE</div>
+                        </div>
+                        <div id="p-ine-inq-prev"></div>
+                      </div>
+                      <div><div class="section-label">INE aval</div>
+                        <div class="ine-zone" onclick="document.getElementById('p-ine-aval').click()">
+                          <input type="file" id="p-ine-aval" accept="image/*" style="display:none" onchange="leerINEPinos(event,'aval')">
+                          <i class="ti ti-id muted-icon" style="font-size:26px"></i>
+                          <div class="text-muted" style="font-size:12px;margin-top:4px">Subir INE</div>
+                        </div>
+                        <div id="p-ine-aval-prev"></div>
+                      </div>
+                    </div>
+                  </div>
+                </details>
+                <!-- Alta / Eliminar -->
+                <div id="pinos-alta-box" style="display:none;margin-top:10px;padding:8px 12px;background:#E8F8F2;border-radius:8px;border:1px solid #A8E6D0;display:flex;align-items:center;justify-content:space-between">
+                  <span style="font-size:12px;color:#085041"><i class="ti ti-home"></i> <strong>Los Pinos</strong></span>
+                  <button class="btn btn-sm btn-primary" onclick="darDeAltaPinos()"><i class="ti ti-device-floppy"></i> Guardar</button>
+                </div>
+                <div id="pinos-elim-box" style="display:none;margin-top:8px;padding:8px 12px;background:#FCEBEB;border-radius:8px;border:1px solid #F7C1C1;display:flex;align-items:center;justify-content:space-between">
+                  <span style="font-size:12px;color:#a32d2d"><i class="ti ti-alert-triangle"></i> Inquilino activo en Los Pinos</span>
+                  <button class="btn btn-sm btn-danger" onclick="eliminarPinos()"><i class="ti ti-trash"></i> Dar de baja</button>
+                </div>
+              </div>
 
             </div>
 
-            <!-- Botones generar siempre visibles -->
-            <div style="display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid #f0f0ee">
+            <!-- Botones generar -->
+            <div id="btns-depas" style="display:flex;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid #f0f0ee">
               <button class="btn btn-docx" id="btn-gen-docx" onclick="genContrato('docx')" style="flex:1"><i class="ti ti-file-word"></i> Generar .docx</button>
             </div>
+            <div id="btns-pinos" style="display:none;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid #f0f0ee">
+              <button class="btn btn-docx" id="btn-pinos-docx" onclick="genContratoPinos()" style="flex:1"><i class="ti ti-file-word"></i> Generar .docx Los Pinos</button>
+            </div>
             <div id="contrato-gen-msg" style="margin-top:8px"></div>
+            <div id="pinos-msg" style="margin-top:8px"></div>
           </div>
         </div>
 
@@ -328,43 +384,6 @@
       <div class="card" style="border-left:3px solid #a32d2d;border-radius:0 12px 12px 0;margin-top:16px">
         <div class="card-title mb-8"><i class="ti ti-archive" style="color:#a32d2d;margin-right:6px"></i>Historial de inquilinos eliminados</div>
         <div id="inq-hist-list"><div class="text-muted" style="font-size:13px;padding:8px 0">Sin inquilinos eliminados aún</div></div>
-      </div>
-    </div>
-
-    <!-- ── Los Pinos ── -->
-    <div id="page-pinos" class="page">
-      <div class="page-header"><h2 class="page-title">Los Pinos</h2></div>
-      <div class="two-col">
-        <!-- Columna izquierda: inquilino + contrato -->
-        <div>
-          <div class="card">
-            <div class="card-title mb-8">Inquilino actual</div>
-            <div class="form-row">
-              <div class="form-group"><label>Nombre inquilino</label><input type="text" id="p-nombre" placeholder="Nombre completo"></div>
-              <div class="form-group"><label>Nombre aval</label><input type="text" id="p-aval" placeholder="Nombre completo"></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group"><label>Renta mensual ($)</label><input type="number" id="p-monto" value="22000"></div>
-              <div class="form-group"><label>Duración</label><select id="p-dur"><option value="UN AÑO">1 año</option><option value="SEIS MESES">6 meses</option><option value="DOS AÑOS">2 años</option></select></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group"><label>Fecha inicio</label><input type="date" id="p-ini" onchange="pFin()"></div>
-              <div class="form-group"><label>Fecha fin (auto)</label><input type="date" id="p-fin" readonly></div>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:12px">
-              <button class="btn btn-primary" onclick="guardarPinos()" style="flex:1"><i class="ti ti-device-floppy"></i> Guardar</button>
-              <button class="btn btn-docx" id="btn-pinos-docx" onclick="genContratoPinos()" style="flex:1"><i class="ti ti-file-word"></i> Generar .docx</button>
-            </div>
-            <div id="pinos-msg" style="margin-top:8px"></div>
-          </div>
-        </div>
-        <!-- Columna derecha: seguimiento de pagos -->
-        <div>
-          <div class="card">
-            <div class="card-title mb-8">Seguimiento de pagos</div>
-            <div id="pinos-pagos-list"><div class="text-muted" style="font-size:13px">Guarda un inquilino para ver los pagos.</div></div>
-          </div>
-        </div>
       </div>
     </div>
 
