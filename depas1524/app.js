@@ -792,6 +792,14 @@ function renderContratos(){
   var sel=document.getElementById('c-sel');if(!sel)return;
   sel.innerHTML='<option value="">— Manual o selecciona —</option>';
   DEPTOS.forEach(function(d,i){sel.innerHTML+='<option value="'+i+'">Depto '+d.num+' — '+d.nombre+'</option>';});
+  // Dropdown de deptos: solo vacíos
+  var depSel=document.getElementById('c-depto');
+  if(depSel){
+    var current=depSel.value;
+    depSel.innerHTML='<option value="">— Selecciona —</option>';
+    VACIOS.forEach(function(n){depSel.innerHTML+='<option value="'+n+'">Depto '+n+'</option>';});
+    if(current)depSel.value=current;
+  }
   checkAltaBtn();prevContrato();
   var elimBox=document.getElementById('elim-contrato-box');if(elimBox)elimBox.style.display='none';
   // Historial inquilinos eliminados
