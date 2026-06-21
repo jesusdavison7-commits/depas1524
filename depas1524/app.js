@@ -983,7 +983,8 @@ function renderContratos(){
   if(!INQ_HIST.length){hl.innerHTML='<div class="text-muted" style="font-size:13px;padding:8px 0">Sin inquilinos eliminados aún</div>';return;}
   var rows='<table class="tbl"><thead><tr><th>Inquilino</th><th>Depto</th><th>Renta</th><th>Eliminado</th><th></th></tr></thead><tbody>';
   INQ_HIST.forEach(function(d,i){
-    rows+='<tr><td style="font-weight:500">'+esc(d.nombre)+'</td><td>Depto '+d.num+'</td><td>'+fmt(d.renta)+'</td><td class="text-muted">'+esc(d._eliminado)+'</td><td style="display:flex;gap:6px"><button class="btn btn-xs btn-primary" onclick="restaurarInq('+i+')"><i class="ti ti-refresh"></i> Restaurar</button><button class="btn btn-xs btn-danger" onclick="eliminarDeHistorial('+i+')"><i class="ti ti-trash"></i> Eliminar</button></td></tr>';
+    var depLabel=d._esPinos?'🏠 Los Pinos':'Depto '+d.num;
+    rows+='<tr><td style="font-weight:500">'+esc(d.nombre)+'</td><td>'+depLabel+'</td><td>'+fmt(d.renta)+'</td><td class="text-muted">'+esc(d._eliminado)+'</td><td style="display:flex;gap:6px">'+(d._esPinos?'':'<button class="btn btn-xs btn-primary" onclick="restaurarInq('+i+')"><i class="ti ti-refresh"></i> Restaurar</button>')+'<button class="btn btn-xs btn-danger" onclick="eliminarDeHistorial('+i+')"><i class="ti ti-trash"></i> Eliminar</button></td></tr>';
   });
   rows+='</tbody></table>';
   hl.innerHTML=rows;
@@ -1336,8 +1337,20 @@ function darDeAltaPinos(){
   renderDeptos();renderDashboard();
 }
 
+function _archivarPinos(){
+  if(!PINOS.nombre)return;
+  var ahora=new Date();
+  INQ_HIST.unshift(Object.assign({},PINOS,{
+    num:'🏠',
+    renta:PINOS.monto||22000,
+    _eliminado:ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear(),
+    _esPinos:true
+  }));
+  saveInqHist();
+}
 function eliminarPinos(){
   if(!confirm('¿Dar de baja al inquilino de Los Pinos?'))return;
+  _archivarPinos();
   PINOS={};PINOS_PAGOS={};
   savePinos();savePinosPagos();
   showToast('Inquilino de Los Pinos dado de baja','ok');
@@ -1392,6 +1405,7 @@ function guardarEdicionPinos(){
 
 function eliminarPinosDesdeModal(){
   if(!confirm('¿Dar de baja al inquilino de Los Pinos?'))return;
+  _archivarPinos();
   closeModal('modal-editar-pinos');
   PINOS={};PINOS_PAGOS={};
   savePinos();savePinosPagos();
