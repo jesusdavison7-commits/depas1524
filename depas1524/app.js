@@ -792,13 +792,15 @@ function renderContratos(){
   var sel=document.getElementById('c-sel');if(!sel)return;
   sel.innerHTML='<option value="">— Manual o selecciona —</option>';
   DEPTOS.forEach(function(d,i){sel.innerHTML+='<option value="'+i+'">Depto '+d.num+' — '+d.nombre+'</option>';});
-  // Dropdown de deptos: solo vacíos
+  // Dropdown de deptos: solo vacíos (no ocupados)
   var depSel=document.getElementById('c-depto');
   if(depSel){
     var current=depSel.value;
+    var ocupados=DEPTOS.map(function(d){return d.num;});
+    var vacios=[1,2,3,4,5,6,7,8].filter(function(n){return ocupados.indexOf(n)<0;});
     depSel.innerHTML='<option value="">— Selecciona —</option>';
-    VACIOS.forEach(function(n){depSel.innerHTML+='<option value="'+n+'">Depto '+n+'</option>';});
-    if(current)depSel.value=current;
+    vacios.forEach(function(n){depSel.innerHTML+='<option value="'+n+'">Depto '+n+'</option>';});
+    if(current&&vacios.indexOf(parseInt(current))>-1)depSel.value=current;
   }
   checkAltaBtn();prevContrato();
   var elimBox=document.getElementById('elim-contrato-box');if(elimBox)elimBox.style.display='none';
