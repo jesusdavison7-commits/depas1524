@@ -521,7 +521,7 @@ function renderTablaCombinada(){
     }
     var labelStyle=isPinos?'color:#6b21a8;font-weight:700':'font-weight:600';
     html+='<tr style="background:'+(f.rowBg||'')+(isPinos?';border-top:2px solid #e9d5ff':'')+'">';
-    html+='<td style="padding:8px 10px;border:1px solid #e5e7eb;'+labelStyle+';white-space:nowrap;position:sticky;left:0;background:'+(f.rowBg||'#fff')+(isPinos?';background:#f9f6ff':'')+';z-index:1">'+(isPinos?'🏠 Los Pinos':'Depto '+f.num)+'</td>';
+    html+='<td style="padding:8px 10px;border:1px solid #e5e7eb;'+labelStyle+';white-space:nowrap;position:sticky;left:0;background:'+(f.rowBg||'#fff')+(isPinos?';background:#f9f6ff':'')+';z-index:1'+(isPinos?';cursor:pointer':'')+'"'+(isPinos?' onclick="verPinos()"':'')+' title="'+(isPinos?'Ver detalles Los Pinos':'')+'">'+(isPinos?'🏠 Los Pinos':'Depto '+f.num)+'</td>';
     html+='<td style="padding:8px 10px;border:1px solid #e5e7eb">'
       +(isVacio?'<span class="text-muted">—</span>'
         :(f.tipo==='depto'?'<div class="flex gap-8" style="align-items:center">'+avEl(f.nombre,f.idx)+'<div><div>'+f.nombre+(f.inmobTag||'')+'</div>'+progHtml+'</div></div>'
