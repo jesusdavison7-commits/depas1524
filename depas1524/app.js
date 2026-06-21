@@ -478,10 +478,15 @@ function renderTablaCombinada(){
     });
   }
 
-  // Recolectar todos los meses de todos los contratos
+  // Recolectar meses: solo los de contratos activos (no vacíos ni sin contrato)
   var todosKeys={};
-  filas.forEach(function(f){Object.keys(f.mesesContrato).forEach(function(k){todosKeys[k]=idxToYM(parseInt(k));});});
-  var sortedKeys=Object.keys(todosKeys).map(Number).sort(function(a,b){return a-b;});
+  filas.forEach(function(f){
+    if(f.tipo==='vacio')return;
+    Object.keys(f.mesesContrato).forEach(function(k){todosKeys[k]=idxToYM(parseInt(k));});
+  });
+  // Nunca mostrar más allá del fin del contrato más largo
+  var maxKey=Math.max.apply(null,Object.keys(todosKeys).map(Number).concat([miActual]));
+  var sortedKeys=Object.keys(todosKeys).map(Number).filter(function(k){return k<=maxKey;}).sort(function(a,b){return a-b;});
 
   var TH='padding:6px 8px;border:1px solid #e5e7eb;white-space:nowrap;';
   var tabId='dash-cal-'+Date.now();
@@ -507,15 +512,11 @@ function renderTablaCombinada(){
       var total=f.finKey-f.iniKey||1;
       var transcurrido=Math.min(Math.max(miActual-f.iniKey,0),total);
       var pct=Math.round(transcurrido/total*100);
-      var diasParaVencer='';
-      if(f.finStr){
-        var finD=new Date(f.finStr.split('/').reverse().join('-')+'T12:00:00');
-        var dv=Math.ceil((finD-new Date())/(1000*60*60*24));
-        diasParaVencer=dv<0?'<span style="color:#991B1B;font-size:10px">⚠ Vencido</span>':dv<=30?'<span style="color:#92400E;font-size:10px">⚠ '+dv+'d</span>':'<span style="color:#9ca3af;font-size:10px">'+dv+'d</span>';
-      }
+      var mesesRestantes=f.finKey-miActual;
+      var dvLabel=mesesRestantes<0?'<span style="color:#991B1B;font-size:10px">⚠ Vencido</span>':mesesRestantes===0?'<span style="color:#92400E;font-size:10px">⚠ Último mes</span>':mesesRestantes<=2?'<span style="color:#92400E;font-size:10px">⚠ '+mesesRestantes+'m</span>':'<span style="color:#9ca3af;font-size:10px">'+mesesRestantes+'m</span>';
       progHtml='<div style="display:flex;align-items:center;gap:5px;margin-top:3px">'
-        +'<div style="flex:1;height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+(pct>=100?'#6b21a8':isPinos?'#7c3aed':'#1D9E75')+';border-radius:2px;transition:width .3s"></div></div>'
-        +diasParaVencer+'</div>';
+        +'<div style="flex:1;height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+(pct>=100?'#ef4444':isPinos?'#7c3aed':'#1D9E75')+';border-radius:2px"></div></div>'
+        +dvLabel+'</div>';
     }
     var labelStyle=isPinos?'color:#6b21a8;font-weight:700':'font-weight:600';
     html+='<tr style="background:'+(f.rowBg||'')+(isPinos?';border-top:2px solid #e9d5ff':'')+'">';
