@@ -386,95 +386,118 @@ function renderDashboard() {
   if(srvPend.length)al.innerHTML+='<div class="alert-banner alert-amber"><i class="ti ti-receipt" style="font-size:16px;flex-shrink:0"></i><div><strong>'+srvPend.length+' servicio'+(srvPend.length>1?'s':'')+' pendiente'+(srvPend.length>1?'s':'')+' de pago</strong><div style="font-size:12px;margin-top:2px">'+srvPend.join(' · ')+'</div></div><button class="btn btn-sm" style="margin-left:auto" onclick="showPage(\'servicios\',document.querySelectorAll(\'.nav-item\')[2])">Ver servicios</button></div>';
   try{alertaCFEProximo();}catch(e){console.warn('alertaCFE:',e);}
 
-  var hoy=new Date();var diaHoy=hoy.getDate(),mesHoy=hoy.getMonth(),anioHoy=hoy.getFullYear();
-  var tbody=document.getElementById('dash-tbody'); tbody.innerHTML='';
+  renderTablaCombinada();
+}
+
+function renderTablaCombinada(){
+  var el=document.getElementById('dash-tabla');if(!el)return;
+  var hoy=new Date();var mesHoy=hoy.getMonth(),anioHoy=hoy.getFullYear();
+  var miActual=mesIdx(anioHoy,mesHoy);
+  var MESES_CORTOS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+  // Construir filas
+  var filas=[];
   DEPTOS.forEach(function(d,i){
-    var mi=mesDePago();
-    var diaReal=diaEfectivo(d.diaPago,anioHoy,mesHoy); // ej. día 31 → 30 en junio
-    var p=getPago(d.num,mi),ok=p&&p.pagado;
-    var badge,rowStyle='',accion='';
-    var diaLabel=diaReal<d.diaPago?'Día '+d.diaPago+' ('+diaReal+' este mes)':'Día '+d.diaPago;
+    var diaReal=diaEfectivo(d.diaPago,anioHoy,mesHoy);
+    var p=getPago(d.num,miActual),ok=p&&p.pagado;
+    var badge,rowBg='',accion;
     if(ok){
-      badge='<span class="badge badge-green">✓ Pagado</span>'+(p&&p.fecha?' <span style="font-size:11px;color:#6b6b6b">'+fmtD(p.fecha)+'</span>':'');
-      accion='<button class="btn btn-xs btn-danger" onclick="desmarcarPago('+d.num+')"><i class="ti ti-rotate-left"></i> Deshacer</button>';
+      badge='<span class="badge badge-green" style="font-size:10px">✓ Pagado</span>'+(p.fecha?'<div style="font-size:10px;color:#6b6b6b;margin-top:2px">'+fmtD(p.fecha)+'</div>':'');
+      accion='<button class="btn btn-xs btn-danger" onclick="desmarcarPago('+d.num+')"><i class="ti ti-rotate-left"></i></button>';
     } else {
       var fechaLimite=new Date(anioHoy,mesHoy,diaReal+7);
       if(hoy<=fechaLimite){
-        var diasRestantes=Math.ceil((fechaLimite-hoy)/(1000*60*60*24));
-        badge='<span class="badge" style="background:#FEF3C7;color:#92400E;border:1px solid #F59E0B">⏳ En gracia · '+diasRestantes+'d</span>';
-        rowStyle='background:#FFFBEB';
+        var dr=Math.ceil((fechaLimite-hoy)/(1000*60*60*24));
+        badge='<span class="badge" style="font-size:10px;background:#FEF3C7;color:#92400E;border:1px solid #F59E0B">⏳ '+dr+'d gracia</span>';
+        rowBg='#FFFBEB';
       } else {
-        var diasVencido=Math.floor((hoy-fechaLimite)/(1000*60*60*24));
-        badge='<span class="badge" style="background:#FEE2E2;color:#991B1B;border:1px solid #EF4444">⚠ Vencido · '+diasVencido+'d</span>';
-        rowStyle='background:#FFF5F5';
+        var dv=Math.floor((hoy-fechaLimite)/(1000*60*60*24));
+        badge='<span class="badge" style="font-size:10px;background:#FEE2E2;color:#991B1B;border:1px solid #EF4444">⚠ '+dv+'d vencido</span>';
+        rowBg='#FFF5F5';
       }
-      accion='<button class="btn btn-xs btn-primary" onclick="marcarPagado('+d.num+')">Marcar pagado</button>';
+      accion='<button class="btn btn-xs btn-primary" onclick="marcarPagado('+d.num+')">✓ Pagar</button>';
     }
-    var inmobTag=d.viaInmobiliaria?' <span style="font-size:10px;background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:4px;padding:1px 5px">🏢</span>':'';
-    tbody.innerHTML+='<tr style="'+rowStyle+'"><td><strong>Depto '+d.num+'</strong></td><td><div class="flex gap-8">'+avEl(d.nombre,i)+'<span>'+esc(d.nombre)+inmobTag+'</span></div></td><td class="text-muted">'+diaLabel+'</td><td>'+fmt(d.renta)+'</td><td>'+badge+'</td><td>'+accion+'</td></tr>';
+    var inmobTag=d.viaInmobiliaria?'<span style="font-size:9px;background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:3px;padding:1px 4px;margin-left:3px">🏢</span>':'';
+    // Meses del contrato
+    var mesesContrato={};
+    if(d.iniDate&&d.finDate){
+      var ini=new Date(d.iniDate+'T12:00:00'),fin=new Date(d.finDate+'T12:00:00');
+      var cur=new Date(ini.getFullYear(),ini.getMonth(),1);
+      while(cur<=fin){mesesContrato[mesIdx(cur.getFullYear(),cur.getMonth())]=true;cur.setMonth(cur.getMonth()+1);}
+    }
+    filas.push({tipo:'depto',num:d.num,idx:i,nombre:esc(d.nombre),inmobTag:inmobTag,renta:fmt(d.renta),diaPago:'Día '+d.diaPago,badge:badge,accion:accion,rowBg:rowBg,mesesContrato:mesesContrato,
+      getPagado:function(key){var pp=PAGOS[d.num]&&PAGOS[d.num][key];return pp&&pp.pagado;},
+      getToggle:function(key){return 'toggleHistPago('+d.num+','+key+')';}
+    });
   });
-  VACIOS.forEach(function(n){tbody.innerHTML+='<tr><td><strong>Depto '+n+'</strong></td><td colspan="5" class="text-muted">Vacío</td></tr>';});
-  // Fila Los Pinos
+  VACIOS.forEach(function(n){
+    filas.push({tipo:'vacio',num:n,nombre:'Vacío',renta:'—',diaPago:'—',badge:'<span class="badge badge-gray" style="font-size:10px">Vacío</span>',accion:'',rowBg:'',mesesContrato:{}});
+  });
   if(PINOS.nombre){
-    var pmi=MEX_MES,pp=PINOS_PAGOS[pmi]||{};
-    var pbadge,paccion;
-    if(pp.pagado){
-      pbadge='<span class="badge badge-green">✓ Pagado'+(pp.fecha?' · '+fmtD(pp.fecha):'')+'</span>';
-      paccion='<button class="btn btn-xs btn-danger" onclick="desmarcarPagoPinos('+pmi+')"><i class="ti ti-rotate-left"></i> Deshacer</button>';
+    var pp=PINOS_PAGOS[miActual]||{},pok=pp.pagado;
+    var pbadge,paccion,prowBg='#f9f6ff';
+    if(pok){
+      pbadge='<span class="badge badge-green" style="font-size:10px">✓ Pagado</span>'+(pp.fecha?'<div style="font-size:10px;color:#6b6b6b;margin-top:2px">'+fmtD(pp.fecha)+'</div>':'');
+      paccion='<button class="btn btn-xs btn-danger" onclick="desmarcarPagoPinos('+miActual+')"><i class="ti ti-rotate-left"></i></button>';
     } else {
-      pbadge='<span class="badge badge-amber">Pendiente</span>';
-      paccion='<button class="btn btn-xs btn-primary" onclick="marcarPagoPinos('+pmi+')">Marcar pagado</button>';
+      pbadge='<span class="badge badge-amber" style="font-size:10px">Pendiente</span>';
+      paccion='<button class="btn btn-xs btn-primary" onclick="marcarPagoPinos('+miActual+')">✓ Pagar</button>';
     }
-    tbody.innerHTML+='<tr style="background:#f9f6ff"><td><strong style="color:#6b21a8">🏠 Los Pinos</strong></td><td>'+esc(PINOS.nombre)+'</td><td class="text-muted">Día 5</td><td>'+fmt(PINOS.monto||22000)+'</td><td>'+pbadge+'</td><td>'+paccion+'</td></tr>';
-  } else {
-    tbody.innerHTML+='<tr style="background:#f9f6ff"><td><strong style="color:#6b21a8">🏠 Los Pinos</strong></td><td colspan="5" class="text-muted">Sin inquilino — <a href="#" onclick="showPage(\'contratos\',null);return false" style="color:#7c3aed">Registrar en Contratos</a></td></tr>';
+    var pinosMeses={};
+    if(PINOS.ini&&PINOS.fin){
+      var pini=new Date(PINOS.ini+'T12:00:00'),pfin=new Date(PINOS.fin+'T12:00:00');
+      var pcur=new Date(pini.getFullYear(),pini.getMonth(),1);
+      while(pcur<=pfin){pinosMeses[mesIdx(pcur.getFullYear(),pcur.getMonth())]=true;pcur.setMonth(pcur.getMonth()+1);}
+    }
+    filas.push({tipo:'pinos',num:'🏠',nombre:esc(PINOS.nombre),inmobTag:'',renta:fmt(PINOS.monto||22000),diaPago:'Día 5',badge:pbadge,accion:paccion,rowBg:prowBg,mesesContrato:pinosMeses,
+      getPagado:function(key){var pp2=PINOS_PAGOS[key];return pp2&&pp2.pagado;},
+      getToggle:function(key){return 'toggleHistPagoPinos('+key+')';}
+    });
   }
-  renderCalendarioPagos();
-}
 
-function renderCalendarioPagos(){
-  var el=document.getElementById('dash-calendario');if(!el)return;
-  // Reunir todas las filas: deptos + pinos
-  var filas=[];
-  DEPTOS.forEach(function(d){
-    if(!d.iniDate||!d.finDate)return;
-    var ini=new Date(d.iniDate+'T12:00:00'),fin=new Date(d.finDate+'T12:00:00');
-    var meses=[];var cur=new Date(ini.getFullYear(),ini.getMonth(),1);
-    while(cur<=fin){meses.push({y:cur.getFullYear(),m:cur.getMonth()});cur.setMonth(cur.getMonth()+1);}
-    filas.push({label:'Depto '+d.num,sub:esc(d.nombre),color:'#1D9E75',meses:meses,getPagado:function(key){var p=PAGOS[d.num]&&PAGOS[d.num][key];return p&&p.pagado;},diaPago:d.diaPago});
-  });
-  if(PINOS.nombre&&PINOS.ini&&PINOS.fin){
-    var ini=new Date(PINOS.ini+'T12:00:00'),fin=new Date(PINOS.fin+'T12:00:00');
-    var meses=[];var cur=new Date(ini.getFullYear(),ini.getMonth(),1);
-    while(cur<=fin){meses.push({y:cur.getFullYear(),m:cur.getMonth()});cur.setMonth(cur.getMonth()+1);}
-    filas.push({label:'Los Pinos',sub:esc(PINOS.nombre),color:'#7c3aed',meses:meses,getPagado:function(key){var p=PINOS_PAGOS[key];return p&&p.pagado;},diaPago:5});
-  }
-  if(!filas.length){el.innerHTML='';return;}
-  // Recolectar todos los meses únicos y ordenarlos
+  // Recolectar todos los meses de todos los contratos
   var todosKeys={};
-  filas.forEach(function(f){f.meses.forEach(function(cm){todosKeys[mesIdx(cm.y,cm.m)]=cm;});});
+  filas.forEach(function(f){Object.keys(f.mesesContrato).forEach(function(k){todosKeys[k]=idxToYM(parseInt(k));});});
   var sortedKeys=Object.keys(todosKeys).map(Number).sort(function(a,b){return a-b;});
-  var MESES_CORTOS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  var hoy=new Date();var miActual=mesIdx(hoy.getFullYear(),hoy.getMonth());
-  // Construir tabla
-  var html='<div style="overflow-x:auto;margin-top:1.5rem"><div style="font-weight:600;font-size:13px;margin-bottom:.75rem;color:#374151">Calendario de pagos</div><table style="border-collapse:collapse;font-size:11px;min-width:100%"><thead><tr><th style="text-align:left;padding:6px 10px;background:#f9fafb;border:1px solid #e5e7eb;white-space:nowrap;min-width:100px">Depto</th><th style="text-align:left;padding:6px 10px;background:#f9fafb;border:1px solid #e5e7eb;white-space:nowrap;min-width:120px">Inquilino</th>';
+
+  // Header
+  var TH='padding:6px 8px;border:1px solid #e5e7eb;white-space:nowrap;';
+  var html='<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;width:100%"><thead><tr>';
+  html+='<th style="'+TH+'background:#f9fafb;text-align:left;min-width:80px">Depto</th>';
+  html+='<th style="'+TH+'background:#f9fafb;text-align:left;min-width:140px">Inquilino</th>';
+  html+='<th style="'+TH+'background:#f9fafb;text-align:left;min-width:70px">Renta</th>';
+  html+='<th style="'+TH+'background:#f9fafb;text-align:left;min-width:130px">Este mes</th>';
+  html+='<th style="'+TH+'background:#f9fafb;min-width:80px"></th>';
   sortedKeys.forEach(function(key){
-    var cm=todosKeys[key];
-    var esActual=key===miActual;
-    html+='<th style="padding:6px 8px;background:'+(esActual?'#EFF6FF':'#f9fafb')+';border:1px solid #e5e7eb;text-align:center;white-space:nowrap;min-width:60px;'+(esActual?'font-weight:700;color:#1d4ed8':'')+'">'+MESES_CORTOS[cm.m]+'<br><span style="font-weight:400;color:#9ca3af;font-size:10px">'+cm.y+'</span></th>';
+    var ym=todosKeys[key];var esActual=key===miActual;
+    html+='<th style="'+TH+'text-align:center;min-width:52px;background:'+(esActual?'#EFF6FF':'#f9fafb')+(esActual?';color:#1d4ed8;font-weight:700':'')+'">'
+      +MESES_CORTOS[ym.m]+'<br><span style="font-weight:400;color:#9ca3af;font-size:10px">'+ym.y+'</span></th>';
   });
   html+='</tr></thead><tbody>';
+
+  // Filas
   filas.forEach(function(f){
-    var keySet={};f.meses.forEach(function(cm){keySet[mesIdx(cm.y,cm.m)]=true;});
-    html+='<tr><td style="padding:6px 10px;border:1px solid #e5e7eb;font-weight:600;white-space:nowrap"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+f.color+';margin-right:5px"></span>'+f.label+'</td><td style="padding:6px 10px;border:1px solid #e5e7eb;color:#6b7280;white-space:nowrap">'+f.sub+'</td>';
+    var isPinos=f.tipo==='pinos';
+    var isVacio=f.tipo==='vacio';
+    var labelStyle=isPinos?'color:#6b21a8;font-weight:700':'font-weight:600';
+    html+='<tr style="background:'+(f.rowBg||'')+(isPinos?';border-top:2px solid #e9d5ff':'')+'">';
+    html+='<td style="padding:8px 10px;border:1px solid #e5e7eb;'+labelStyle+';white-space:nowrap">'+(isPinos?'🏠 Los Pinos':'Depto '+f.num)+'</td>';
+    html+='<td style="padding:8px 10px;border:1px solid #e5e7eb;white-space:nowrap">'+(isVacio?'<span class="text-muted">—</span>':(f.tipo==='depto'?avEl(f.nombre,f.idx,'avatar-sm')+' ':'')+f.nombre+(f.inmobTag||''))+'</td>';
+    html+='<td style="padding:8px 10px;border:1px solid #e5e7eb;white-space:nowrap">'+f.renta+'</td>';
+    html+='<td style="padding:8px 10px;border:1px solid #e5e7eb">'+(isVacio?'<span class="text-muted">Vacío</span>':f.badge)+'</td>';
+    html+='<td style="padding:4px 8px;border:1px solid #e5e7eb;text-align:center">'+(isVacio?'':f.accion)+'</td>';
     sortedKeys.forEach(function(key){
-      if(!keySet[key]){html+='<td style="padding:4px 8px;border:1px solid #e5e7eb;background:#f9fafb"></td>';return;}
+      if(!f.mesesContrato[key]){html+='<td style="padding:4px;border:1px solid #e5e7eb;background:#f9fafb"></td>';return;}
+      if(isVacio){html+='<td style="padding:4px;border:1px solid #e5e7eb"></td>';return;}
       var pagado=f.getPagado(key);
       var esActual=key===miActual;
-      var bg=pagado?'#D1FAE5':(esActual?'#FEF3C7':'#FEE2E2');
-      var color=pagado?'#065F46':(esActual?'#92400E':'#991B1B');
-      var icon=pagado?'✓':'';
-      html+='<td style="padding:4px 8px;border:1px solid #e5e7eb;background:'+bg+';color:'+color+';text-align:center;font-weight:600">'+icon+'<div style="font-size:10px;font-weight:400">'+f.diaPago+'</div></td>';
+      var esFuturo=key>miActual;
+      var bg=pagado?'#D1FAE5':esFuturo?'#F3F4F6':esActual?'#FEF3C7':'#FEE2E2';
+      var color=pagado?'#065F46':esFuturo?'#9ca3af':esActual?'#92400E':'#991B1B';
+      var titulo=pagado?'Pagado':esFuturo?'Futuro':esActual?'Pendiente (mes actual)':'Sin pagar';
+      html+='<td style="padding:4px;border:1px solid #e5e7eb;background:'+bg+';text-align:center;cursor:'+(esFuturo?'default':'pointer')+'" title="'+titulo+'"'+(esFuturo?'':' onclick="'+f.getToggle(key)+';renderTablaCombinada()"')+'>'+
+        '<div style="font-size:13px;font-weight:700;color:'+color+'">'+(pagado?'✓':esFuturo?'':'—')+'</div>'+
+        '</td>';
     });
     html+='</tr>';
   });
