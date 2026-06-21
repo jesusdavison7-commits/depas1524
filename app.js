@@ -429,6 +429,57 @@ function renderDashboard() {
   } else {
     tbody.innerHTML+='<tr style="background:#f9f6ff"><td><strong style="color:#6b21a8">🏠 Los Pinos</strong></td><td colspan="5" class="text-muted">Sin inquilino — <a href="#" onclick="showPage(\'contratos\',null);return false" style="color:#7c3aed">Registrar en Contratos</a></td></tr>';
   }
+  renderCalendarioPagos();
+}
+
+function renderCalendarioPagos(){
+  var el=document.getElementById('dash-calendario');if(!el)return;
+  // Reunir todas las filas: deptos + pinos
+  var filas=[];
+  DEPTOS.forEach(function(d){
+    if(!d.iniDate||!d.finDate)return;
+    var ini=new Date(d.iniDate+'T12:00:00'),fin=new Date(d.finDate+'T12:00:00');
+    var meses=[];var cur=new Date(ini.getFullYear(),ini.getMonth(),1);
+    while(cur<=fin){meses.push({y:cur.getFullYear(),m:cur.getMonth()});cur.setMonth(cur.getMonth()+1);}
+    filas.push({label:'Depto '+d.num,sub:esc(d.nombre),color:'#1D9E75',meses:meses,getPagado:function(key){var p=PAGOS[d.num]&&PAGOS[d.num][key];return p&&p.pagado;},diaPago:d.diaPago});
+  });
+  if(PINOS.nombre&&PINOS.ini&&PINOS.fin){
+    var ini=new Date(PINOS.ini+'T12:00:00'),fin=new Date(PINOS.fin+'T12:00:00');
+    var meses=[];var cur=new Date(ini.getFullYear(),ini.getMonth(),1);
+    while(cur<=fin){meses.push({y:cur.getFullYear(),m:cur.getMonth()});cur.setMonth(cur.getMonth()+1);}
+    filas.push({label:'Los Pinos',sub:esc(PINOS.nombre),color:'#7c3aed',meses:meses,getPagado:function(key){var p=PINOS_PAGOS[key];return p&&p.pagado;},diaPago:5});
+  }
+  if(!filas.length){el.innerHTML='';return;}
+  // Recolectar todos los meses únicos y ordenarlos
+  var todosKeys={};
+  filas.forEach(function(f){f.meses.forEach(function(cm){todosKeys[mesIdx(cm.y,cm.m)]=cm;});});
+  var sortedKeys=Object.keys(todosKeys).map(Number).sort(function(a,b){return a-b;});
+  var MESES_CORTOS=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var hoy=new Date();var miActual=mesIdx(hoy.getFullYear(),hoy.getMonth());
+  // Construir tabla
+  var html='<div style="overflow-x:auto;margin-top:1.5rem"><div style="font-weight:600;font-size:13px;margin-bottom:.75rem;color:#374151">Calendario de pagos</div><table style="border-collapse:collapse;font-size:11px;min-width:100%"><thead><tr><th style="text-align:left;padding:6px 10px;background:#f9fafb;border:1px solid #e5e7eb;white-space:nowrap;min-width:100px">Depto</th><th style="text-align:left;padding:6px 10px;background:#f9fafb;border:1px solid #e5e7eb;white-space:nowrap;min-width:120px">Inquilino</th>';
+  sortedKeys.forEach(function(key){
+    var cm=todosKeys[key];
+    var esActual=key===miActual;
+    html+='<th style="padding:6px 8px;background:'+(esActual?'#EFF6FF':'#f9fafb')+';border:1px solid #e5e7eb;text-align:center;white-space:nowrap;min-width:60px;'+(esActual?'font-weight:700;color:#1d4ed8':'')+'">'+MESES_CORTOS[cm.m]+'<br><span style="font-weight:400;color:#9ca3af;font-size:10px">'+cm.y+'</span></th>';
+  });
+  html+='</tr></thead><tbody>';
+  filas.forEach(function(f){
+    var keySet={};f.meses.forEach(function(cm){keySet[mesIdx(cm.y,cm.m)]=true;});
+    html+='<tr><td style="padding:6px 10px;border:1px solid #e5e7eb;font-weight:600;white-space:nowrap"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+f.color+';margin-right:5px"></span>'+f.label+'</td><td style="padding:6px 10px;border:1px solid #e5e7eb;color:#6b7280;white-space:nowrap">'+f.sub+'</td>';
+    sortedKeys.forEach(function(key){
+      if(!keySet[key]){html+='<td style="padding:4px 8px;border:1px solid #e5e7eb;background:#f9fafb"></td>';return;}
+      var pagado=f.getPagado(key);
+      var esActual=key===miActual;
+      var bg=pagado?'#D1FAE5':(esActual?'#FEF3C7':'#FEE2E2');
+      var color=pagado?'#065F46':(esActual?'#92400E':'#991B1B');
+      var icon=pagado?'✓':'';
+      html+='<td style="padding:4px 8px;border:1px solid #e5e7eb;background:'+bg+';color:'+color+';text-align:center;font-weight:600">'+icon+'<div style="font-size:10px;font-weight:400">'+f.diaPago+'</div></td>';
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  el.innerHTML=html;
 }
 
 // ── Deptos ─────────────────────────────────────────────────────────────────
