@@ -554,7 +554,6 @@ function renderTablaCombinada(){
   var thActual=document.getElementById('thmes-'+miActual);
   if(thActual){var wrap=document.getElementById(tabId);if(wrap)wrap.scrollLeft=Math.max(0,thActual.offsetLeft-200);}
 }
-}
 
 // ── Deptos ─────────────────────────────────────────────────────────────────
 function renderDeptos() {
