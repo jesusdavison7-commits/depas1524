@@ -529,21 +529,31 @@ function renderTablaCombinada(){
     html+='<td style="padding:8px 10px;border:1px solid #e5e7eb">'+(isVacio?'<span class="text-muted">Vacío</span>':f.badge)+'</td>';
     html+='<td style="padding:4px 8px;border:1px solid #e5e7eb;text-align:center">'+(isVacio?'':f.accion)+'</td>';
     sortedKeys.forEach(function(key){
-      var esFinContrato=f.finKey===key&&!isVacio;
-      var extraBorder=esFinContrato?';border-right:3px solid '+(isPinos?'#7c3aed':'#374151'):'';
-      if(!f.mesesContrato[key]){html+='<td style="padding:4px;border:1px solid #e5e7eb;background:#f9fafb'+extraBorder+'"></td>';return;}
+      var esFinContrato=f.finKey===key&&!isVacio&&f.finKey!=null;
+      if(!f.mesesContrato[key]){html+='<td style="padding:4px;border:1px solid #e5e7eb;background:#f9fafb"></td>';return;}
       if(isVacio){html+='<td style="padding:4px;border:1px solid #e5e7eb"></td>';return;}
       var pagado=f.getPagado(key);
       var esActual=key===miActual;
       var esFuturo=key>miActual;
+      // Celda fin de contrato: fondo naranja/morado con fecha
+      if(esFinContrato){
+        var finBg=isPinos?'#EDE9FE':'#FFF7ED';
+        var finColor=isPinos?'#5b21b6':'#92400E';
+        var finBorder=isPinos?'2px solid #7c3aed':'2px solid #F59E0B';
+        var iconFin=pagado?'<div style="font-size:12px;font-weight:700;color:#065F46">✓</div>':'<div style="font-size:12px;font-weight:700;color:'+finColor+'">—</div>';
+        html+='<td style="padding:5px 4px;border:'+finBorder+';background:'+finBg+';text-align:center;cursor:'+(esFuturo?'default':'pointer')+'" title="Último mes del contrato · vence '+f.finStr+'"'+(esFuturo?'':' onclick="'+f.getToggle(key)+';renderTablaCombinada()"')+'>'+
+          iconFin+
+          '<div style="font-size:9px;font-weight:700;color:'+finColor+';margin-top:1px">'+f.finStr+'</div>'+
+          '</td>';
+        return;
+      }
       var bg=pagado?'#D1FAE5':esFuturo?'#F3F4F6':esActual?'#FEF3C7':'#FEE2E2';
       var color=pagado?'#065F46':esFuturo?'#9ca3af':esActual?'#92400E':'#991B1B';
-      var titulo=(pagado?'Pagado':esFuturo?'Mes futuro':esActual?'Pendiente':'Sin pagar')+(esFinContrato?' · Último mes del contrato ('+f.finStr+')':'');
-      var finTag=esFinContrato?'<div style="font-size:9px;font-weight:700;color:'+(isPinos?'#7c3aed':'#374151')+';letter-spacing:.5px;margin-top:1px">FIN</div>':'';
+      var titulo=pagado?'Pagado':esFuturo?'Mes futuro':esActual?'Pendiente':'Sin pagar';
       var diaLabel='<div style="font-size:10px;color:'+color+';opacity:0.75;margin-top:1px">día '+f.diaPago+'</div>';
-      html+='<td style="padding:5px 4px;border:1px solid #e5e7eb;background:'+bg+';text-align:center;cursor:'+(esFuturo?'default':'pointer')+extraBorder+'" title="'+titulo+'"'+(esFuturo?'':' onclick="'+f.getToggle(key)+';renderTablaCombinada()"')+'>'+
+      html+='<td style="padding:5px 4px;border:1px solid #e5e7eb;background:'+bg+';text-align:center;cursor:'+(esFuturo?'default':'pointer')+'" title="'+titulo+'"'+(esFuturo?'':' onclick="'+f.getToggle(key)+';renderTablaCombinada()"')+'>'+
         '<div style="font-size:13px;font-weight:700;color:'+color+'">'+(pagado?'✓':esFuturo?'':'—')+'</div>'+
-        (esFuturo?'':diaLabel)+finTag+
+        (esFuturo?'':diaLabel)+
         '</td>';
     });
     html+='</tr>';
