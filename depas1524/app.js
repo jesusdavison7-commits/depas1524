@@ -63,7 +63,9 @@ var CONTRATO_HIST = [];
 var INQ_HIST = [];
 var BOLSA_JESUS = 0;
 var BOLSA_CARLITOS = 0;
-var BOLSA_MANT = 0; // historial de inquilinos eliminados
+var BOLSA_MANT = 0;
+var PINOS = {};
+var PINOS_PAGOS = {}; // historial de inquilinos eliminados
 var FIN_HIST = {};
 var FONDO_INICIAL = 0;
 var MANT_STATE = {};
@@ -286,6 +288,12 @@ function loadRest() {
     return db.collection('config').doc('gastosMant').get();
   }).then(function(snap){
     GASTOS_MANT=snap.exists?(snap.data().data||[]):[];
+    return db.collection('config').doc('pinos').get();
+  }).then(function(snap){
+    if(snap.exists){PINOS=snap.data();}
+    return db.collection('config').doc('pinosPagos').get();
+  }).then(function(snap){
+    PINOS_PAGOS=snap.exists?(snap.data().pagos||{}):{};
     renderAll();
   }).catch(function(e){
     console.error('Error en initApp:', e);
@@ -303,7 +311,7 @@ function showPage(id,btn) {
   var pg=document.getElementById('page-'+id); if(pg)pg.classList.add('active');
   if(btn)btn.classList.add('active');
   closeSidebar();
-  var renders={dashboard:renderDashboard,deptos:renderDeptos,pagos:renderPagos,servicios:renderServicios,finanzas:renderFinanzas,contratos:renderContratos,mantenimiento:renderMantenimiento};
+  var renders={dashboard:renderDashboard,deptos:renderDeptos,pagos:renderPagos,servicios:renderServicios,finanzas:renderFinanzas,contratos:renderContratos,mantenimiento:renderMantenimiento,pinos:renderPinos};
   if(renders[id])renders[id]();
 }
 function openModal(id) {
@@ -1042,6 +1050,161 @@ function registrarContrato(nom,num,formato){
   var ahora=new Date();CONTRATO_HIST.unshift({nombre:nom,depto:num,formato:formato,fecha:ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear()});
   var ht=document.getElementById('c-hist');if(!ht)return;ht.innerHTML='';
   CONTRATO_HIST.forEach(function(c){ht.innerHTML+='<tr><td style="font-weight:500">'+c.nombre+'</td><td>Depto '+c.depto+'</td><td><span class="badge '+(c.formato==='PDF'?'badge-red':'badge-blue')+'">'+c.formato+'</span></td><td class="text-muted">'+c.fecha+'</td></tr>';});
+}
+
+// ── Los Pinos ──────────────────────────────────────────────────────────────
+function savePinos(){return safeSave(db.collection('config').doc('pinos').set(PINOS),'pinos');}
+function savePinosPagos(){return safeSave(db.collection('config').doc('pinosPagos').set({pagos:PINOS_PAGOS}),'pinosPagos');}
+
+function pFin(){
+  var ini=document.getElementById('p-ini').value,dur=document.getElementById('p-dur').value;
+  if(!ini)return;
+  var d=new Date(ini+'T12:00:00');
+  var meses={'UN AÑO':12,'SEIS MESES':6,'DOS AÑOS':24};
+  d.setMonth(d.getMonth()+(meses[dur]||12));
+  document.getElementById('p-fin').value=d.toISOString().split('T')[0];
+}
+
+function guardarPinos(){
+  var nom=document.getElementById('p-nombre').value.trim();
+  var av=document.getElementById('p-aval').value.trim();
+  var monto=parseFloat(document.getElementById('p-monto').value)||22000;
+  var dur=document.getElementById('p-dur').value;
+  var ini=document.getElementById('p-ini').value;
+  var fin=document.getElementById('p-fin').value;
+  if(!nom){showToast('Ingresa el nombre del inquilino','error');return;}
+  PINOS={nombre:nom,aval:av,monto:monto,dur:dur,ini:ini,fin:fin};
+  savePinos();
+  showToast('Los Pinos guardado','ok');
+  renderPinos();
+}
+
+function marcarPagoPinos(mi){
+  if(!PINOS_PAGOS[mi])PINOS_PAGOS[mi]={pagado:false};
+  PINOS_PAGOS[mi]={pagado:true,fecha:new Date().toISOString().split('T')[0]};
+  savePinosPagos();renderPinos();
+}
+function desmarcarPagoPinos(mi){
+  if(PINOS_PAGOS[mi])PINOS_PAGOS[mi]={pagado:false,fecha:''};
+  savePinosPagos();renderPinos();
+}
+
+function renderPinos(){
+  // Llenar form con datos guardados
+  if(PINOS.nombre){
+    document.getElementById('p-nombre').value=PINOS.nombre||'';
+    document.getElementById('p-aval').value=PINOS.aval||'';
+    document.getElementById('p-monto').value=PINOS.monto||22000;
+    document.getElementById('p-dur').value=PINOS.dur||'UN AÑO';
+    document.getElementById('p-ini').value=PINOS.ini||'';
+    document.getElementById('p-fin').value=PINOS.fin||'';
+  }
+  // Tabla de pagos
+  var list=document.getElementById('pinos-pagos-list');if(!list)return;
+  if(!PINOS.nombre||!PINOS.ini){list.innerHTML='<div class="text-muted" style="font-size:13px">Guarda un inquilino para ver los pagos.</div>';return;}
+  var ini=new Date(PINOS.ini+'T12:00:00');
+  var fin=PINOS.fin?new Date(PINOS.fin+'T12:00:00'):new Date(ini.getFullYear()+1,ini.getMonth(),ini.getDate());
+  var hoy=new Date();
+  var rows='<table class="tbl"><thead><tr><th>Mes</th><th>Renta</th><th>Estado</th><th></th></tr></thead><tbody>';
+  var cur=new Date(ini.getFullYear(),ini.getMonth(),1);
+  var limit=new Date(fin.getFullYear(),fin.getMonth(),1);
+  while(cur<=limit){
+    var mi=mesIdx(cur.getFullYear(),cur.getMonth());
+    var label=MS_FULL[cur.getMonth()]+' '+cur.getFullYear();
+    var p=PINOS_PAGOS[mi]||{};
+    var esFuturo=cur>new Date(hoy.getFullYear(),hoy.getMonth(),1);
+    var badge,accion;
+    if(p.pagado){
+      badge='<span class="badge badge-green">✓ Pagado'+(p.fecha?' · '+fmtD(p.fecha):'')+'</span>';
+      accion='<button class="btn btn-xs btn-danger" onclick="desmarcarPagoPinos('+mi+')"><i class="ti ti-rotate-left"></i> Deshacer</button>';
+    } else if(esFuturo){
+      badge='<span class="badge badge-gray">Próximo</span>';
+      accion='';
+    } else {
+      badge='<span class="badge badge-amber">Pendiente</span>';
+      accion='<button class="btn btn-xs btn-primary" onclick="marcarPagoPinos('+mi+')">Marcar pagado</button>';
+    }
+    rows+='<tr><td>'+label+'</td><td>'+fmt(PINOS.monto||22000)+'</td><td>'+badge+'</td><td>'+accion+'</td></tr>';
+    cur.setMonth(cur.getMonth()+1);
+  }
+  rows+='</tbody></table>';
+  list.innerHTML=rows;
+}
+
+function genContratoPinos(){
+  var nom=document.getElementById('p-nombre').value.trim()||'___________________________';
+  var av=document.getElementById('p-aval').value.trim()||'___________________________';
+  var monto=parseFloat(document.getElementById('p-monto').value)||22000;
+  var dur=document.getElementById('p-dur').value||'UN AÑO';
+  var ini=document.getElementById('p-ini').value||'';
+  var fin=document.getElementById('p-fin').value||'';
+  var btn=document.getElementById('btn-pinos-docx'),orig=btn.innerHTML;
+  btn.innerHTML='<div class="loading-dots"><span></span><span></span><span></span></div> Generando…';btn.disabled=true;
+  try{
+    var docxLib=window.docx;
+    var Document=docxLib.Document,Packer=docxLib.Packer,Paragraph=docxLib.Paragraph,TextRun=docxLib.TextRun,AlignmentType=docxLib.AlignmentType;
+    var MESES_UP=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+    var MESES_N=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    function fmtF(iso){if(!iso)return{dia:'___',mes:'___',mesUp:'___',anio:'____'};var d=new Date(iso+'T12:00:00');return{dia:d.getDate(),mes:MESES_N[d.getMonth()],mesUp:MESES_UP[d.getMonth()],anio:d.getFullYear()};}
+    function n2l(n){var m={15000:'QUINCE MIL',16000:'DIECISÉIS MIL',17000:'DIECISIETE MIL',18000:'DIECIOCHO MIL',19000:'DIECINUEVE MIL',20000:'VEINTE MIL',21000:'VEINTIÚN MIL',22000:'VEINTIDÓS MIL',23000:'VEINTITRÉS MIL',24000:'VEINTICUATRO MIL',25000:'VEINTICINCO MIL',26000:'VEINTISÉIS MIL',27000:'VEINTISIETE MIL',28000:'VEINTIOCHO MIL',29000:'VEINTINUEVE MIL',30000:'TREINTA MIL'};return m[n]||String(n);}
+    function mTxt(n){return'$'+n.toLocaleString('es-MX',{minimumFractionDigits:2})+' (SON '+n2l(n)+' PESOS 00/100 M. N.)';}
+    var fi=fmtF(ini),ff=fmtF(fin);
+    var NI=nom.toUpperCase(),NA=av.toUpperCase();
+    var mStr=mTxt(monto);
+    var R={font:'Arial',size:22,color:'000000'};
+    var RB=Object.assign({},R,{bold:true});
+    var sp={line:260,lineRule:'auto'};
+    function p(runs,center,kn){return new Paragraph({alignment:center?AlignmentType.CENTER:AlignmentType.BOTH,spacing:sp,keepNext:!!kn,children:runs.map(function(r){return new TextRun(Object.assign({},R,r));})});}
+    function gap(kn){return new Paragraph({spacing:{before:60,after:60},keepNext:!!kn,children:[new TextRun(Object.assign({text:''},R))]});}
+    function firma(label,nombre){return[
+      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:900,after:0},keepNext:true,keepLines:true,children:[new TextRun(Object.assign({text:'_'.repeat(45)},R))]}),
+      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:60,after:0},keepNext:true,keepLines:true,children:[new TextRun(Object.assign({text:label},RB))]}),
+      new Paragraph({alignment:AlignmentType.CENTER,spacing:{before:40,after:0},keepLines:true,children:[new TextRun(Object.assign({text:nombre},R))]})
+    ];}
+    var children=[
+      p([{text:'CONTRATO DE ARRENDAMIENTO QUE EN LA CIUDAD DE LOS MOCHIS, SINALOA, DE LOS ESTADOS UNIDOS MEXICANOS, CELEBRAN HOY '+fi.dia+' DE '+fi.mesUp+' DEL AÑO '+fi.anio+', POR UNA PARTE, EL SEÑOR RAMON ADOLFO ARMENTA RODRIGUEZ, A QUIEN EN LO SUCESIVO SE LE DESIGNARÁ EL ARRENDADOR Y POR LA OTRA PARTE LA C. '},{text:NI,bold:true},{text:', A QUIEN EN LO SUCESIVO SE LE DENOMINARA EL ARRENDATARIO, MISMO QUE SUJETAN BAJO LAS SIGUIENTES DECLARACIONES Y CLAUSULAS:'}]),
+      gap(),p([{text:'DE C L A R A C I O N E S'}],true),gap(),
+      p([{text:'PRIMERA.- Declara EL SEÑOR RAMON ADOLFO ARMENTA RODRIGUEZ en su carácter de arrendador, que es legítimo propietario de una finca urbana compuesta de solar con una construcción tipo casa habitación, de dos pisos, ubicado en calle Rodolfo T. Loaiza número 1693 poniente, fraccionamiento Los Pinos, de esta ciudad de Los Mochis, Sinaloa, la cual cuenta con cochera techada con acceso de portón eléctrico, asimismo, en el primer piso cuenta con áreas de sala, comedor, cocina, un área tipo bodega, un cuarto tipo habitación, así como un baño completo, y en la parte trasera cuenta con un área tipo patio.'}]),
+      gap(),
+      p([{text:'Se precisa que el área de sala cuenta con un aire acondicionado tipo minisplit de dos toneladas marca mirage, el área de cocina esta equipada con todos los muebles necesarios que la componen, incluyendo estufa con campana, horno, microondas, refrigerador; el cuarto tipo habitación cuenta con closet y con un aire acondicionado tipo minisplit de una tonelada marca mirage; en la parte trasera cuenta con área tipo patio cuenta con lavadero, un centro de lavado electrónico (lavadora y secadora) marca mabe, así como un boiler eléctrico.'}]),
+      gap(),
+      p([{text:'En el segundo piso cuenta con dos habitaciones equipadas cada una de ellas con closet de madera, así como con un aire acondicionado tipo minisplit de una tonelada marca mirage, precisando que uno de ellos cuenta en su interior con un baño completo, mientras que al exterior de ambos cuartos tipo habitación, también se cuenta con un baño completo.'}]),
+      gap(),
+      p([{text:'El exterior en su parte frontal cuenta con cámaras de videovigilancia, y en el área de techo cuenta con tanque para gas estacionario de 100 litros.'}]),
+      gap(),
+      p([{text:'El inmueble cuenta con los servicios de internet inalámbrico, energía eléctrica y agua potable, de los cuales se da en arrendamiento mediante contrato que se celebra al tenor de las siguientes:'}]),
+      gap(),p([{text:'C L A U S U L A S:'}],true),gap(),
+      p([{text:'PRIMERA.- Por medio del presente instrumento y en este acto EL SEÑOR RAMON ADOLFO ARMENTA RODRIGUEZ, da en arrendamiento a '},{text:NI,bold:true},{text:', y esta toma de aquella en arrendamiento el bien inmueble descrito debidamente en el punto primero de declaraciones.'}]),
+      gap(),p([{text:'SEGUNDO.- El término de duración del presente contrato de arrendamiento, se fija por las partes por '},{text:dur,bold:true},{text:', contados a partir de este día '},{text:fi.dia+' DE '+fi.mesUp+' DEL AÑO '+fi.anio,bold:true},{text:', para concluir el mismo día '},{text:ff.dia+' DE '+ff.mesUp+' DEL AÑO '+ff.anio,bold:true},{text:', sin necesidad de desahucio ni de ningún aviso previo, pues el arrendatario renuncia expresamente a la prórroga de que trata el artículo 2367 del Código Civil para el Estado de Sinaloa.'}]),
+      gap(),p([{text:'TERCERO.- La C. '},{text:NI,bold:true},{text:', se obliga a pagar y pagará a EL SEÑOR RAMON ADOLFO ARMENTA RODRIGUEZ, en el domicilio particular del Arrendador, sito en Calle Montaña Número 1862 Poniente, del Fraccionamiento Real del Country, de esta ciudad de Los Mochis Sinaloa, domicilio que los contratantes convienen en fijar para el pago y recepción de las pensiones rentísticas, sin necesidad de previo requerimiento judicial o extrajudicial, por el uso y goce temporal del bien inmueble precisado anteriormente, a partir de este día '},{text:fi.dia+' DE '+fi.mesUp+' DEL AÑO '+fi.anio,bold:true},{text:' y hasta el día '},{text:ff.dia+' DE '+ff.mesUp+' DEL AÑO '+ff.anio,bold:true},{text:', la cantidad de '+mStr+', por mensualidad adelantada dentro de los primeros cinco días del mes en turno, asimismo, se manifiesta que a la firma del presente instrumento el arrendatario deja en calidad de depósito la cantidad de '+mStr+', mismos, se quedaran en garantía en caso de daños o incumplimiento del contrato, con independencia de los gastos extras que esto pueda generar.'}]),
+      gap(),p([{text:'CUARTO.- Ambas partes convienen que el precio de arrendamiento mientras dure la vigencia del presente contrato de arrendamiento, por acuerdo de las partes, será incrementado en un 10% por cada año que se acuerde que se siga ocupando la finca arrendada y así sucesivamente se tendrá un nuevo precio de renta por cada año de vigencia tomando como base el precio vigente inmediato anterior.'}]),
+      gap(),p([{text:'QUINTO.- Toda mensualidad será pagada íntegra aun cuando el arrendatario tan solo ocupe la cosa arrendada en todo o en parte de ella o parte del mes correspondiente, precisándose que en caso que el arrendatario abandone o desocupe el inmueble incumpliendo con la temporalidad del año por el cual se pactó el presente contrato, o cualquier otra forma de incumplimiento al mismo, no tendrá derecho a la devolución de la cantidad de '+mStr+', mismos que quedan en garantía en caso de daños o incumplimiento del contrato.'}]),
+      gap(),p([{text:'SEXTO.- La cosa inmueble materia del presente contrato de arrendamiento se destinará por el arrendatario, en todas y cada una de sus partes como casa-habitación, quedándole estrictamente prohibido destinarlo para cualquier otro fin, siendo esto una causa especial de rescisión del presente contrato.'}]),
+      gap(),p([{text:'SÉPTIMA.- No podrá el arrendatario La C.'},{text:NI,bold:true},{text:', sub-arrendar en todo ni en parte la cosa inmueble que se da en arrendamiento como tampoco ceder en todo o en parte los derechos que adquiera sobre este, sin previo consentimiento otorgado por escrito del arrendador.'}]),
+      gap(),p([{text:'OCTAVA.- El arrendatario, '},{text:NI,bold:true},{text:', recibe con esta fecha la cosa inmueble que renta en buen estado de uso y se obliga a cuidar de su conservación, como si se tratase de cosa propia, así como a devolverlo en buen estado a la arrendadora sin más deterioro que el que cause el uso normal o natural de la cosa.'}]),
+      gap(),p([{text:'NOVENA.- Los servicios de energía eléctrica, agua potable o cualquier otro servicio que consuma el arrendatario '},{text:NI,bold:true},{text:', en la cosa inmueble objeto de este arrendamiento, serán por cuenta exclusiva de ésta y se obliga a pagarlos puntualmente a las empresas que se los suministren, con excepción del pago del servicio de internet que este queda a cargo del arrendador, en la empresa que estime conveniente y de acuerdo a sus intereses.'}]),
+      gap(),p([{text:'DÉCIMA.- El arrendador concede el uso del arrendatario de todo el equipamiento con el que cuenta la casa habitación, entre ellos el centro de lavado marca mabe, consistente en lavadora y secadora de ropa, refrigerador, estufa con campana, microondas, horno, cuatro aires acondicionados, cámaras de videovigilancia, boiler, tanque de gas, dos controles de cierre y apertura eléctrica del portón electrónico de acceso a inmueble, mismos que se encuentran en estado nuevo de uso y el arrendatario se obliga a cuidar de su conservación, como si se tratase de cosa propia.'}]),
+      gap(),p([{text:'DÉCIMA PRIMERA.- El arrendatario se compromete que de ser el caso de hacer un mal uso, negligente o con falta de cuidado, se hará responsable de cubrir los gastos que genere su reparación o bien su restitución. Precisándose que el arrendatario tiene un mes a partir del inicio del presente contrato para señalar al arrendador vicios ocultos en el inmueble así como en los objetos que lo equipan descritos en las declaraciones del presente contrato, y en caso de no hacerlo, o bien transcurrido el primer mes de vigencia de este contrato, todo arreglo o desperfecto quedara a cargo del arrendatario quien se obliga a cubrir los gastos que genere su reparación o restitución.'}]),
+      gap(),p([{text:'DÉCIMA SEGUNDA.- El Arrendatario, será responsable de cualquier problema de carácter legal relacionado con la actividad para la cual fue rentado el inmueble, que pudiera suscitarse, ya sea de carácter civil, penal, laboral, administrativo, etc. Por lo que él en lo personal responderá por el mal uso que llegare a darle al inmueble arrendado en caso de verse involucrado en cualquier situación de la naturaleza arriba asentada.'}]),
+      gap(),p([{text:'DÉCIMA TERCERA.- La C. '},{text:NA,bold:true},{text:', se constituye como aval de '},{text:NI,bold:true},{text:', respondiendo íntegramente de todas las obligaciones pactadas en el presente acto contractual.'}]),
+      gap(),p([{text:'DÉCIMA CUARTA.- Ambas partes contratantes se someten expresamente a la jurisdicción de los Tribunales de la ciudad de Los Mochis, Ahome, Sinaloa, México, para todo lo relativo a las cuestiones que se susciten sobre la interpretación y cumplimiento de este contrato renunciando al privilegio en forma expresa de su domicilio presente o futuro por cuanto esto no fuere la ciudad de Los Mochis, Ahome, Sinaloa, México.'}]),
+      gap(),
+      p([{text:'LEIDO Y EXPLICADO EL PRESENTE CONTRATO DE ARRENDAMIENTO ENTRE LAS PARTES Y ENTERADOS DE SU ALCANCE Y CONSECUENCIAS LEGALES, SE MANIFIESTAN CONFORMES CON EL, MISMO QUE LO FIRMAN PARA LOS EFECTOS LEGALES QUE CORRESPONDAN.'}],false,true),
+      gap(true),
+    ].concat(firma('EL ARRENDADOR','RAMON ADOLFO ARMENTA RODRIGUEZ')).concat(firma('EL ARRENDATARIO',nom)).concat(firma('EL AVAL',av));
+    var doc=new Document({sections:[{properties:{page:{size:{width:12240,height:15840},margin:{top:1134,right:1134,bottom:1134,left:1134}}},children:children}]});
+    Packer.toBlob(doc).then(function(blob){
+      var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='contrato_pinos_'+nom.split(' ')[0].toUpperCase()+'.docx';a.click();URL.revokeObjectURL(url);
+      btn.innerHTML=orig;btn.disabled=false;
+      showToast('Contrato Los Pinos generado','ok');
+    }).catch(function(e){
+      document.getElementById('pinos-msg').innerHTML='<div class="alert-banner alert-amber">Error: '+e.message+'</div>';
+      btn.innerHTML=orig;btn.disabled=false;
+    });
+  }catch(e){
+    document.getElementById('pinos-msg').innerHTML='<div class="alert-banner alert-amber">Error: '+e.message+'</div>';
+    btn.innerHTML=orig;btn.disabled=false;
+  }
 }
 
 // ── Mantenimiento ──────────────────────────────────────────────────────────

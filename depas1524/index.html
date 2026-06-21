@@ -42,6 +42,7 @@
       <button class="nav-item" onclick="showPage('finanzas',this)"><i class="ti ti-chart-bar"></i> Finanzas</button>
       <button class="nav-item" onclick="showPage('contratos',this)"><i class="ti ti-file-text"></i> Contratos</button>
       <button class="nav-item" onclick="showPage('mantenimiento',this)"><i class="ti ti-tool"></i> Mantenimiento</button>
+      <button class="nav-item" onclick="showPage('pinos',this)"><i class="ti ti-home"></i> Los Pinos</button>
     </nav>
     <div class="sidebar-footer"><div id="user-info" class="user-info"></div><button class="btn-logout" onclick="doLogout()"><i class="ti ti-logout"></i> Salir</button></div>
   </aside>
@@ -327,6 +328,43 @@
       <div class="card" style="border-left:3px solid #a32d2d;border-radius:0 12px 12px 0;margin-top:16px">
         <div class="card-title mb-8"><i class="ti ti-archive" style="color:#a32d2d;margin-right:6px"></i>Historial de inquilinos eliminados</div>
         <div id="inq-hist-list"><div class="text-muted" style="font-size:13px;padding:8px 0">Sin inquilinos eliminados aún</div></div>
+      </div>
+    </div>
+
+    <!-- ── Los Pinos ── -->
+    <div id="page-pinos" class="page">
+      <div class="page-header"><h2 class="page-title">Los Pinos</h2></div>
+      <div class="two-col">
+        <!-- Columna izquierda: inquilino + contrato -->
+        <div>
+          <div class="card">
+            <div class="card-title mb-8">Inquilino actual</div>
+            <div class="form-row">
+              <div class="form-group"><label>Nombre inquilino</label><input type="text" id="p-nombre" placeholder="Nombre completo"></div>
+              <div class="form-group"><label>Nombre aval</label><input type="text" id="p-aval" placeholder="Nombre completo"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Renta mensual ($)</label><input type="number" id="p-monto" value="22000"></div>
+              <div class="form-group"><label>Duración</label><select id="p-dur"><option value="UN AÑO">1 año</option><option value="SEIS MESES">6 meses</option><option value="DOS AÑOS">2 años</option></select></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Fecha inicio</label><input type="date" id="p-ini" onchange="pFin()"></div>
+              <div class="form-group"><label>Fecha fin (auto)</label><input type="date" id="p-fin" readonly></div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button class="btn btn-primary" onclick="guardarPinos()" style="flex:1"><i class="ti ti-device-floppy"></i> Guardar</button>
+              <button class="btn btn-docx" id="btn-pinos-docx" onclick="genContratoPinos()" style="flex:1"><i class="ti ti-file-word"></i> Generar .docx</button>
+            </div>
+            <div id="pinos-msg" style="margin-top:8px"></div>
+          </div>
+        </div>
+        <!-- Columna derecha: seguimiento de pagos -->
+        <div>
+          <div class="card">
+            <div class="card-title mb-8">Seguimiento de pagos</div>
+            <div id="pinos-pagos-list"><div class="text-muted" style="font-size:13px">Guarda un inquilino para ver los pagos.</div></div>
+          </div>
+        </div>
       </div>
     </div>
 
