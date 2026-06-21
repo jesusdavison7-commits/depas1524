@@ -158,15 +158,20 @@ function fechaStrToMesIdx(fechaStr) {
 function gastoMesIdx(g){ return g.mesIdx!==undefined?g.mesIdx:fechaStrToMesIdx(g.fecha); }
 
 function getPago(num,mi) { return PAGOS[num]&&PAGOS[num][mi]; }
+function primerMesPagado(numDepto){
+  var pagos=PAGOS[numDepto];if(!pagos)return null;
+  var keys=Object.keys(pagos).filter(function(k){return pagos[k]&&pagos[k].pagado;});
+  if(!keys.length)return null;
+  return Math.min.apply(null,keys.map(Number));
+}
 function cobradoMes(mi) {
   return DEPTOS.reduce(function(s,d){
     var p=getPago(d.num,mi);
     if(!p||!p.pagado)return s;
-    // Si es vía inmobiliaria, el primer mes va a comisión y no suma a ganancias
-    if(d.viaInmobiliaria&&d.inicio){
-      var iniD=new Date(d.inicio+'T12:00:00');
-      var primerMes=mesIdx(iniD.getFullYear(),iniD.getMonth());
-      if(mi===primerMes)return s;
+    // Si es vía inmobiliaria, el primer mes pagado va a comisión y no suma a ganancias
+    if(d.viaInmobiliaria){
+      var primer=primerMesPagado(d.num);
+      if(primer!==null&&mi===primer)return s;
     }
     return s+d.renta;
   },0);
