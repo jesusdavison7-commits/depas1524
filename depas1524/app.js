@@ -444,7 +444,9 @@ function renderTablaCombinada(){
     }
     // Siempre incluir mes actual
     mesesContrato[miActual]=true;
-    filas.push({tipo:'depto',num:d.num,idx:i,nombre:esc(d.nombre),inmobTag:inmobTag,renta:fmt(d.renta),diaPago:d.diaPago,badge:badge,accion:accion,rowBg:rowBg,mesesContrato:mesesContrato,
+    var finKey=d.finDate?mesIdx(new Date(d.finDate+'T12:00:00').getFullYear(),new Date(d.finDate+'T12:00:00').getMonth()):null;
+    var iniKey=d.iniDate?mesIdx(new Date(d.iniDate+'T12:00:00').getFullYear(),new Date(d.iniDate+'T12:00:00').getMonth()):null;
+    filas.push({tipo:'depto',num:d.num,idx:i,nombre:esc(d.nombre),inmobTag:inmobTag,renta:fmt(d.renta),diaPago:d.diaPago,badge:badge,accion:accion,rowBg:rowBg,mesesContrato:mesesContrato,finKey:finKey,iniKey:iniKey,finStr:d.finStr||'',
       getPagado:function(key){var pp=PAGOS[d.num]&&PAGOS[d.num][key];return pp&&pp.pagado;},
       getToggle:function(key){return 'toggleHistPago('+d.num+','+key+')';}
     });
@@ -468,7 +470,9 @@ function renderTablaCombinada(){
       var pcur=new Date(pini.getFullYear(),pini.getMonth(),1);
       while(pcur<=pfin){pinosMeses[mesIdx(pcur.getFullYear(),pcur.getMonth())]=true;pcur.setMonth(pcur.getMonth()+1);}
     }
-    filas.push({tipo:'pinos',num:'🏠',nombre:esc(PINOS.nombre),inmobTag:'',renta:fmt(PINOS.monto||22000),diaPago:'Día 5',badge:pbadge,accion:paccion,rowBg:prowBg,mesesContrato:pinosMeses,
+    var pFinKey=PINOS.fin?mesIdx(new Date(PINOS.fin+'T12:00:00').getFullYear(),new Date(PINOS.fin+'T12:00:00').getMonth()):null;
+    var pIniKey=PINOS.ini?mesIdx(new Date(PINOS.ini+'T12:00:00').getFullYear(),new Date(PINOS.ini+'T12:00:00').getMonth()):null;
+    filas.push({tipo:'pinos',num:'🏠',nombre:esc(PINOS.nombre),inmobTag:'',renta:fmt(PINOS.monto||22000),diaPago:5,badge:pbadge,accion:paccion,rowBg:prowBg,mesesContrato:pinosMeses,finKey:pFinKey,iniKey:pIniKey,finStr:PINOS.fin?fmtD(PINOS.fin):'',
       getPagado:function(key){var pp2=PINOS_PAGOS[key];return pp2&&pp2.pagado;},
       getToggle:function(key){return 'toggleHistPagoPinos('+key+')';}
     });
@@ -479,51 +483,77 @@ function renderTablaCombinada(){
   filas.forEach(function(f){Object.keys(f.mesesContrato).forEach(function(k){todosKeys[k]=idxToYM(parseInt(k));});});
   var sortedKeys=Object.keys(todosKeys).map(Number).sort(function(a,b){return a-b;});
 
-  // Header
   var TH='padding:6px 8px;border:1px solid #e5e7eb;white-space:nowrap;';
-  var html='<div style="overflow-x:auto"><table style="border-collapse:collapse;font-size:12px;width:100%"><thead><tr>';
-  html+='<th style="'+TH+'background:#f9fafb;text-align:left;min-width:80px">Depto</th>';
-  html+='<th style="'+TH+'background:#f9fafb;text-align:left;min-width:140px">Inquilino</th>';
+  var tabId='dash-cal-'+Date.now();
+  var html='<div style="overflow-x:auto" id="'+tabId+'"><table style="border-collapse:collapse;font-size:12px;width:100%"><thead><tr>';
+  html+='<th style="'+TH+'background:#f9fafb;text-align:left;min-width:90px;position:sticky;left:0;z-index:2">Depto</th>';
+  html+='<th style="'+TH+'background:#f9fafb;text-align:left;min-width:150px">Inquilino</th>';
   html+='<th style="'+TH+'background:#f9fafb;text-align:left;min-width:70px">Renta</th>';
   html+='<th style="'+TH+'background:#f9fafb;text-align:left;min-width:130px">Este mes</th>';
-  html+='<th style="'+TH+'background:#f9fafb;min-width:80px"></th>';
+  html+='<th style="'+TH+'background:#f9fafb;min-width:76px"></th>';
   sortedKeys.forEach(function(key){
     var ym=todosKeys[key];var esActual=key===miActual;
-    html+='<th style="'+TH+'text-align:center;min-width:52px;background:'+(esActual?'#EFF6FF':'#f9fafb')+(esActual?';color:#1d4ed8;font-weight:700':'')+'">'
-      +MESES_CORTOS[ym.m]+'<br><span style="font-weight:400;color:#9ca3af;font-size:10px">'+ym.y+'</span></th>';
+    html+='<th id="thmes-'+key+'" style="'+TH+'text-align:center;min-width:58px;background:'+(esActual?'#DBEAFE':'#f9fafb')+(esActual?';color:#1d4ed8;font-weight:700':';color:#6b7280')+'">'
+      +MESES_CORTOS[ym.m]+'<br><span style="font-weight:400;font-size:10px">'+ym.y+'</span></th>';
   });
   html+='</tr></thead><tbody>';
 
-  // Filas
   filas.forEach(function(f){
     var isPinos=f.tipo==='pinos';
     var isVacio=f.tipo==='vacio';
+    // Barra de progreso del contrato
+    var progHtml='';
+    if(!isVacio&&f.iniKey!=null&&f.finKey!=null){
+      var total=f.finKey-f.iniKey||1;
+      var transcurrido=Math.min(Math.max(miActual-f.iniKey,0),total);
+      var pct=Math.round(transcurrido/total*100);
+      var diasParaVencer='';
+      if(f.finStr){
+        var finD=new Date(f.finStr.split('/').reverse().join('-')+'T12:00:00');
+        var dv=Math.ceil((finD-new Date())/(1000*60*60*24));
+        diasParaVencer=dv<0?'<span style="color:#991B1B;font-size:10px">⚠ Vencido</span>':dv<=30?'<span style="color:#92400E;font-size:10px">⚠ '+dv+'d</span>':'<span style="color:#9ca3af;font-size:10px">'+dv+'d</span>';
+      }
+      progHtml='<div style="display:flex;align-items:center;gap:5px;margin-top:3px">'
+        +'<div style="flex:1;height:4px;background:#e5e7eb;border-radius:2px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+(pct>=100?'#6b21a8':isPinos?'#7c3aed':'#1D9E75')+';border-radius:2px;transition:width .3s"></div></div>'
+        +diasParaVencer+'</div>';
+    }
     var labelStyle=isPinos?'color:#6b21a8;font-weight:700':'font-weight:600';
     html+='<tr style="background:'+(f.rowBg||'')+(isPinos?';border-top:2px solid #e9d5ff':'')+'">';
-    html+='<td style="padding:8px 10px;border:1px solid #e5e7eb;'+labelStyle+';white-space:nowrap">'+(isPinos?'🏠 Los Pinos':'Depto '+f.num)+'</td>';
-    html+='<td style="padding:8px 10px;border:1px solid #e5e7eb;white-space:nowrap">'+(isVacio?'<span class="text-muted">—</span>':(f.tipo==='depto'?avEl(f.nombre,f.idx,'avatar-sm')+' ':'')+f.nombre+(f.inmobTag||''))+'</td>';
+    html+='<td style="padding:8px 10px;border:1px solid #e5e7eb;'+labelStyle+';white-space:nowrap;position:sticky;left:0;background:'+(f.rowBg||'#fff')+(isPinos?';background:#f9f6ff':'')+';z-index:1">'+(isPinos?'🏠 Los Pinos':'Depto '+f.num)+'</td>';
+    html+='<td style="padding:8px 10px;border:1px solid #e5e7eb">'
+      +(isVacio?'<span class="text-muted">—</span>'
+        :(f.tipo==='depto'?'<div class="flex gap-8" style="align-items:center">'+avEl(f.nombre,f.idx)+'<div><div>'+f.nombre+(f.inmobTag||'')+'</div>'+progHtml+'</div></div>'
+        :'<div>'+f.nombre+progHtml+'</div>'))
+      +'</td>';
     html+='<td style="padding:8px 10px;border:1px solid #e5e7eb;white-space:nowrap">'+f.renta+'</td>';
     html+='<td style="padding:8px 10px;border:1px solid #e5e7eb">'+(isVacio?'<span class="text-muted">Vacío</span>':f.badge)+'</td>';
     html+='<td style="padding:4px 8px;border:1px solid #e5e7eb;text-align:center">'+(isVacio?'':f.accion)+'</td>';
     sortedKeys.forEach(function(key){
-      if(!f.mesesContrato[key]){html+='<td style="padding:4px;border:1px solid #e5e7eb;background:#f9fafb"></td>';return;}
+      var esFinContrato=f.finKey===key&&!isVacio;
+      var extraBorder=esFinContrato?';border-right:3px solid '+(isPinos?'#7c3aed':'#374151'):'';
+      if(!f.mesesContrato[key]){html+='<td style="padding:4px;border:1px solid #e5e7eb;background:#f9fafb'+extraBorder+'"></td>';return;}
       if(isVacio){html+='<td style="padding:4px;border:1px solid #e5e7eb"></td>';return;}
       var pagado=f.getPagado(key);
       var esActual=key===miActual;
       var esFuturo=key>miActual;
       var bg=pagado?'#D1FAE5':esFuturo?'#F3F4F6':esActual?'#FEF3C7':'#FEE2E2';
       var color=pagado?'#065F46':esFuturo?'#9ca3af':esActual?'#92400E':'#991B1B';
-      var titulo=pagado?'Pagado':esFuturo?'Futuro':esActual?'Pendiente (mes actual)':'Sin pagar';
-      var diaLabel=f.diaPago?'<div style="font-size:10px;color:'+color+';opacity:0.8;margin-top:1px">día '+f.diaPago+'</div>':'';
-      html+='<td style="padding:5px 6px;border:1px solid #e5e7eb;background:'+bg+';text-align:center;cursor:'+(esFuturo?'default':'pointer')+'" title="'+titulo+'"'+(esFuturo?'':' onclick="'+f.getToggle(key)+';renderTablaCombinada()"')+'>'+
-        '<div style="font-size:13px;font-weight:700;color:'+color+'">'+(pagado?'✓':esFuturo?'':esFuturo?'':'—')+'</div>'+
-        (esFuturo?'':diaLabel)+
+      var titulo=(pagado?'Pagado':esFuturo?'Mes futuro':esActual?'Pendiente':'Sin pagar')+(esFinContrato?' · Último mes del contrato ('+f.finStr+')':'');
+      var finTag=esFinContrato?'<div style="font-size:9px;font-weight:700;color:'+(isPinos?'#7c3aed':'#374151')+';letter-spacing:.5px;margin-top:1px">FIN</div>':'';
+      var diaLabel='<div style="font-size:10px;color:'+color+';opacity:0.75;margin-top:1px">día '+f.diaPago+'</div>';
+      html+='<td style="padding:5px 4px;border:1px solid #e5e7eb;background:'+bg+';text-align:center;cursor:'+(esFuturo?'default':'pointer')+extraBorder+'" title="'+titulo+'"'+(esFuturo?'':' onclick="'+f.getToggle(key)+';renderTablaCombinada()"')+'>'+
+        '<div style="font-size:13px;font-weight:700;color:'+color+'">'+(pagado?'✓':esFuturo?'':'—')+'</div>'+
+        (esFuturo?'':diaLabel)+finTag+
         '</td>';
     });
     html+='</tr>';
   });
   html+='</tbody></table></div>';
   el.innerHTML=html;
+  // Scroll automático al mes actual
+  var thActual=document.getElementById('thmes-'+miActual);
+  if(thActual){var wrap=document.getElementById(tabId);if(wrap)wrap.scrollLeft=Math.max(0,thActual.offsetLeft-200);}
+}
 }
 
 // ── Deptos ─────────────────────────────────────────────────────────────────
