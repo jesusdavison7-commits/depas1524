@@ -735,10 +735,11 @@ function guardarCFE(){
 
 // ── Finanzas ───────────────────────────────────────────────────────────────
 function renderFinanzas(){
+  var FIN_DESDE=mesIdx(2026,5); // junio 2026
   var sel=document.getElementById('fin-mes-sel');
   if(sel&&sel.dataset.built!=='1'){
     sel.innerHTML='';
-    for(var ii=0;ii<=MEX_MES;ii++){var o=document.createElement('option');o.value=ii;o.textContent=idxLabel(ii);sel.appendChild(o);}
+    for(var ii=FIN_DESDE;ii<=MEX_MES;ii++){var o=document.createElement('option');o.value=ii;o.textContent=idxLabel(ii);sel.appendChild(o);}
     sel.value=MEX_MES;sel.dataset.built='1';
   }
   var mi=sel?parseInt(sel.value):MEX_MES;
@@ -776,6 +777,7 @@ function renderFinanzas(){
 
   var hh='';
   HIST_LABELS.forEach(function(label,idx){
+    if(idx<FIN_DESDE)return;
     var ff=calcFinMes(idx); if(ff.cob===0)return;
     var ffh=FIN_HIST[idx]||{};
     hh+='<div style="padding:10px 0;border-bottom:1px solid #eee"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-weight:500;font-size:13px">'+label+'</span><span class="text-muted" style="font-size:12px">Cobrado: '+fmt(ff.cob)+'</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#E1F5EE;border-radius:8px;padding:8px"><div style="font-size:11px;color:#085041">Jesús</div><div style="font-size:16px;font-weight:600;color:#1D9E75">'+fmt(ff.jesus)+'</div><button class="btn btn-xs '+(ffh.jesusTransferido?'btn-primary':'')+'" style="margin-top:4px" onclick="toggleTransferido('+idx+',\'jesus\')">'+(ffh.jesusTransferido?'✓ Transferido':'Marcar transferido')+'</button></div><div style="background:#E6F1FB;border-radius:8px;padding:8px"><div style="font-size:11px;color:#0C447C">Carlitos</div><div style="font-size:16px;font-weight:600;color:#185FA5">'+fmt(ff.carlitos)+'</div><button class="btn btn-xs '+(ffh.carlitosTransferido?'btn-primary':'')+'" style="margin-top:4px" onclick="toggleTransferido('+idx+',\'carlitos\')">'+(ffh.carlitosTransferido?'✓ Transferido':'Marcar transferido')+'</button></div></div></div>';
@@ -1317,6 +1319,13 @@ function darDeAltaPinos(){
     email:document.getElementById('p-email').value,
     deposito:document.getElementById('p-deposito').value==='si',
     depositoMonto:parseFloat(document.getElementById('p-deposito-monto').value)||0,
+    viaInmobiliaria:document.getElementById('p-inmobiliaria').checked,
+    inmobMesComision:(function(){
+      if(!document.getElementById('p-inmobiliaria').checked)return null;
+      var iniVal=document.getElementById('p-ini').value;
+      var ref=iniVal?new Date(iniVal+'T12:00:00'):new Date();
+      return mesIdx(ref.getFullYear(),ref.getMonth());
+    })(),
     ineInqUrl:PINOS.ineInqUrl||'',
     ineAvalUrl:PINOS.ineAvalUrl||''
   };
@@ -1347,6 +1356,7 @@ function cargarFormPinos(){
   document.getElementById('p-email').value=PINOS.email||'';
   document.getElementById('p-deposito').value=PINOS.deposito?'si':'no';
   document.getElementById('p-deposito-monto').value=PINOS.depositoMonto||'';
+  document.getElementById('p-inmobiliaria').checked=!!PINOS.viaInmobiliaria;
   if(PINOS.ineInqUrl)document.getElementById('p-ine-inq-prev').innerHTML='<img src="'+PINOS.ineInqUrl+'" class="ine-preview" style="margin-top:6px">';
   if(PINOS.ineAvalUrl)document.getElementById('p-ine-aval-prev').innerHTML='<img src="'+PINOS.ineAvalUrl+'" class="ine-preview" style="margin-top:6px">';
   checkPinosBtn();
