@@ -389,6 +389,23 @@ function renderDashboard() {
   renderTablaCombinada();
 }
 
+function tablaMarcarDepto(num){
+  var d=DEPTOS.find(function(x){return x.num===num;});if(!d)return;
+  var mi=MEX_MES;
+  if(!PAGOS[num])PAGOS[num]={};
+  var pago={pagado:true,forma:'Transferencia SPEI',monto:d.renta,fecha:new Date().toISOString().split('T')[0]};
+  PAGOS[num][mi]=pago;
+  savePago(num,mi,pago);
+  renderDashboard();renderPagos();renderDeptos();renderFinanzas();
+}
+function tablaDesmarcarDepto(num){
+  var d=DEPTOS.find(function(x){return x.num===num;});if(!d)return;
+  var mi=MEX_MES;
+  if(PAGOS[num])delete PAGOS[num][mi];
+  deletePago(num,mi);
+  renderDashboard();renderPagos();renderDeptos();renderFinanzas();
+}
+
 function renderTablaCombinada(){
   var el=document.getElementById('dash-tabla');if(!el)return;
   var hoy=new Date();var mesHoy=hoy.getMonth(),anioHoy=hoy.getFullYear();
@@ -403,7 +420,7 @@ function renderTablaCombinada(){
     var badge,rowBg='',accion;
     if(ok){
       badge='<span class="badge badge-green" style="font-size:10px">✓ Pagado</span>'+(p.fecha?'<div style="font-size:10px;color:#6b6b6b;margin-top:2px">'+fmtD(p.fecha)+'</div>':'');
-      accion='<button class="btn btn-xs btn-danger" onclick="desmarcarPago('+d.num+')"><i class="ti ti-rotate-left"></i></button>';
+      accion='<button class="btn btn-xs btn-danger" onclick="tablaDesmarcarDepto('+d.num+')"><i class="ti ti-rotate-left"></i></button>';
     } else {
       var fechaLimite=new Date(anioHoy,mesHoy,diaReal+7);
       if(hoy<=fechaLimite){
@@ -415,7 +432,7 @@ function renderTablaCombinada(){
         badge='<span class="badge" style="font-size:10px;background:#FEE2E2;color:#991B1B;border:1px solid #EF4444">⚠ '+dv+'d vencido</span>';
         rowBg='#FFF5F5';
       }
-      accion='<button class="btn btn-xs btn-primary" onclick="marcarPagado('+d.num+')">✓ Pagar</button>';
+      accion='<button class="btn btn-xs btn-primary" onclick="tablaMarcarDepto('+d.num+')">✓ Pagar</button>';
     }
     var inmobTag=d.viaInmobiliaria?'<span style="font-size:9px;background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:3px;padding:1px 4px;margin-left:3px">🏢</span>':'';
     // Meses del contrato
