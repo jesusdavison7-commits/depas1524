@@ -107,6 +107,13 @@
     <div id="page-finanzas" class="page">
       <div class="page-header"><h2 class="page-title" id="fin-mes-titulo">Finanzas</h2><select id="fin-mes-sel" class="btn btn-sm" style="font-size:13px;padding:4px 10px" onchange="renderFinanzas()"></select></div>
 
+      <!-- Tabla + Gráfica resumen -->
+      <div class="card" id="fin-grafica-card">
+        <div class="card-title mb-12"><i class="ti ti-chart-bar" style="color:#534AB7;margin-right:6px"></i>Resumen mensual</div>
+        <div id="fin-grafica-svg" style="overflow-x:auto;margin-bottom:16px"></div>
+        <div id="fin-tabla-resumen" style="overflow-x:auto"></div>
+      </div>
+
       <!-- Distribución del mes -->
       <div class="card">
         <div class="card-title mb-12"><i class="ti ti-calculator" style="color:#1D9E75;margin-right:6px"></i>Distribución del mes</div>

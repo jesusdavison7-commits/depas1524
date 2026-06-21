@@ -775,6 +775,78 @@ function renderFinanzas(){
   var gastosRows=GASTOS_MANT.length?GASTOS_MANT.map(function(g,i){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #eee;font-size:13px"><span>'+g.fecha+' — '+g.desc+'</span><div style="display:flex;align-items:center;gap:8px"><span style="font-weight:500;color:#c0392b">-'+fmt(g.monto)+'</span><button style="background:none;border:none;cursor:pointer;color:#999;font-size:12px;padding:0 4px" onclick="eliminarGastoMant('+i+')">✕</button></div></div>';}).join(''):'<div style="font-size:12px;color:#999;padding:4px 0">Sin gastos registrados</div>';
   if(fondoEl)fondoEl.innerHTML='<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><div style="font-size:28px;font-weight:600;color:#534AB7">'+fmt(fondoAcum-totalGastosMant)+'</div><button class="btn btn-sm" onclick="editarFondoInicial()">✎ Editar saldo inicial</button></div><div id="fondo-edit-box" style="display:none;margin-bottom:10px"><div class="form-row" style="max-width:300px"><div class="form-group"><label>Saldo inicial ($)</label><input type="number" id="fondo-inicial-inp" value="'+FONDO_INICIAL+'" placeholder="0"></div></div><button class="btn btn-primary btn-sm" onclick="guardarFondoInicial()">✓ Guardar</button> <button class="btn btn-sm" onclick="document.getElementById(\'fondo-edit-box\').style.display=\'none\'">Cancelar</button></div><div style="font-size:12px;color:#6b6b6b;margin-bottom:8px">Saldo inicial '+fmt(FONDO_INICIAL)+' + 10% mensual — gastos '+fmt(totalGastosMant)+'</div><details><summary style="cursor:pointer;font-size:12px;color:#534AB7;margin-bottom:8px">Ver desglose por mes</summary>'+fondoRows+'</details><details><summary style="cursor:pointer;font-size:12px;color:#c0392b;margin-bottom:8px">Gastos registrados ('+GASTOS_MANT.length+')</summary>'+gastosRows+'</details>';
 
+  // ── Tabla + Gráfica resumen mensual ────────────────────────────────────────
+  (function(){
+    var svgEl=document.getElementById('fin-grafica-svg');
+    var tabEl=document.getElementById('fin-tabla-resumen');
+    if(!svgEl||!tabEl)return;
+    // Recopilar meses con datos
+    var meses=[];
+    for(var i=FIN_DESDE;i<=MEX_MES;i++){
+      var ff=calcFinMes(i);
+      var gastos=(ff.mant||0)+(ff.limp||0)+(ff.srvEdif||0);
+      meses.push({idx:i,label:idxLabel(i),cob:ff.cob,gastos:gastos,neto:ff.neto,jesus:ff.jesus,carlitos:ff.carlitos});
+    }
+    // ── SVG gráfica de barras ──
+    var BAR_W=28,GAP=10,GRP=BAR_W*2+GAP+14,PAD_L=56,PAD_B=28,PAD_T=16,H=160;
+    var W=Math.max(PAD_L+meses.length*GRP+20,300);
+    var maxVal=meses.reduce(function(m,r){return Math.max(m,r.cob,r.gastos);},1);
+    function barH(v){return Math.round((v/maxVal)*(H-PAD_T-PAD_B));}
+    function fmtK(v){return v>=1000?'$'+(v/1000).toFixed(0)+'k':'$'+v;}
+    var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" style="display:block;min-width:'+W+'px">';
+    // Líneas guía
+    for(var g=0;g<=4;g++){
+      var gy=PAD_T+Math.round((H-PAD_T-PAD_B)*g/4);
+      var gv=Math.round(maxVal*(1-g/4));
+      svg+='<line x1="'+PAD_L+'" y1="'+gy+'" x2="'+(W-10)+'" y2="'+gy+'" stroke="#e5e7eb" stroke-width="1"/>';
+      svg+='<text x="'+(PAD_L-4)+'" y="'+(gy+4)+'" text-anchor="end" font-size="9" fill="#9ca3af">'+fmtK(gv)+'</text>';
+    }
+    // Barras
+    meses.forEach(function(r,i){
+      var x=PAD_L+i*GRP;
+      var bCob=barH(r.cob),bGas=barH(r.gastos);
+      var yBase=H-PAD_B;
+      svg+='<rect x="'+x+'" y="'+(yBase-bCob)+'" width="'+BAR_W+'" height="'+bCob+'" rx="3" fill="#1D9E75" opacity="0.85"/>';
+      svg+='<rect x="'+(x+BAR_W+4)+'" y="'+(yBase-bGas)+'" width="'+BAR_W+'" height="'+bGas+'" rx="3" fill="#EF4444" opacity="0.75"/>';
+      var lbl=r.label.substring(0,3);
+      svg+='<text x="'+(x+BAR_W+2)+'" y="'+(yBase+12)+'" text-anchor="middle" font-size="9" fill="#6b7280">'+lbl+'</text>';
+    });
+    // Leyenda
+    svg+='<rect x="'+PAD_L+'" y="4" width="10" height="8" rx="2" fill="#1D9E75"/><text x="'+(PAD_L+13)+'" y="11" font-size="9" fill="#374151">Cobrado</text>';
+    svg+='<rect x="'+(PAD_L+65)+'" y="4" width="10" height="8" rx="2" fill="#EF4444"/><text x="'+(PAD_L+78)+'" y="11" font-size="9" fill="#374151">Gastos</text>';
+    svg+='</svg>';
+    svgEl.innerHTML=svg;
+    // ── Tabla resumen ──
+    var th='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f8f8f6">';
+    ['Mes','Cobrado','Gastos','Neto','Jesús','Carlitos'].forEach(function(h){
+      th+='<th style="padding:6px 10px;text-align:right;font-weight:600;color:#374151;border-bottom:2px solid #e5e7eb;white-space:nowrap"'+(h==='Mes'?'style="text-align:left"':'')+'>'+h+'</th>';
+    });
+    th+='</tr></thead><tbody>';
+    var totCob=0,totGas=0,totNet=0,totJ=0,totC=0;
+    meses.forEach(function(r,i){
+      var esMes=r.idx===MEX_MES;
+      var bg=esMes?'#f0f9ff':'';
+      th+='<tr style="border-bottom:1px solid #f0f0ee;background:'+bg+'">';
+      th+='<td style="padding:5px 10px;font-weight:'+(esMes?'700':'400')+';color:#1a1a1a;white-space:nowrap">'+r.label+(esMes?' ◀':'')+'</td>';
+      th+='<td style="padding:5px 10px;text-align:right;color:#1D9E75;font-weight:500">'+fmt(r.cob)+'</td>';
+      th+='<td style="padding:5px 10px;text-align:right;color:#EF4444">'+fmt(r.gastos)+'</td>';
+      th+='<td style="padding:5px 10px;text-align:right;font-weight:500">'+fmt(r.neto)+'</td>';
+      th+='<td style="padding:5px 10px;text-align:right;color:#1D9E75">'+fmt(r.jesus)+'</td>';
+      th+='<td style="padding:5px 10px;text-align:right;color:#185FA5">'+fmt(r.carlitos)+'</td>';
+      th+='</tr>';
+      totCob+=r.cob;totGas+=r.gastos;totNet+=r.neto;totJ+=r.jesus;totC+=r.carlitos;
+    });
+    th+='<tr style="background:#f8f8f6;font-weight:700;border-top:2px solid #e5e7eb">';
+    th+='<td style="padding:6px 10px">Total</td>';
+    th+='<td style="padding:6px 10px;text-align:right;color:#1D9E75">'+fmt(totCob)+'</td>';
+    th+='<td style="padding:6px 10px;text-align:right;color:#EF4444">'+fmt(totGas)+'</td>';
+    th+='<td style="padding:6px 10px;text-align:right">'+fmt(totNet)+'</td>';
+    th+='<td style="padding:6px 10px;text-align:right;color:#1D9E75">'+fmt(totJ)+'</td>';
+    th+='<td style="padding:6px 10px;text-align:right;color:#185FA5">'+fmt(totC)+'</td>';
+    th+='</tr></tbody></table>';
+    tabEl.innerHTML=th;
+  })();
+
   var hh='';
   HIST_LABELS.forEach(function(label,idx){
     if(idx<FIN_DESDE)return;
