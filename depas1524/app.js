@@ -435,17 +435,18 @@ function renderTablaCombinada(){
       accion='<button class="btn btn-xs btn-primary" onclick="tablaMarcarDepto('+d.num+')">✓ Pagar</button>';
     }
     var inmobTag=d.viaInmobiliaria?'<span style="font-size:9px;background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:3px;padding:1px 4px;margin-left:3px">🏢</span>':'';
-    // Meses del contrato: desde ini hasta fin + siempre el mes actual + todos los meses con pago
+    // Meses del contrato: desde inicio hasta finDate + siempre el mes actual
     var mesesContrato={};
-    if(d.iniDate&&d.finDate){
-      var ini=new Date(d.iniDate+'T12:00:00'),fin=new Date(d.finDate+'T12:00:00');
+    var iniRaw=d.inicio||d.iniDate||'';
+    if(iniRaw&&d.finDate){
+      var ini=new Date(iniRaw+'T12:00:00'),fin=new Date(d.finDate+'T12:00:00');
       var cur=new Date(ini.getFullYear(),ini.getMonth(),1);
       while(cur<=fin){mesesContrato[mesIdx(cur.getFullYear(),cur.getMonth())]=true;cur.setMonth(cur.getMonth()+1);}
     }
     // Siempre incluir mes actual
     mesesContrato[miActual]=true;
     var finKey=d.finDate?mesIdx(new Date(d.finDate+'T12:00:00').getFullYear(),new Date(d.finDate+'T12:00:00').getMonth()):null;
-    var iniKey=d.iniDate?mesIdx(new Date(d.iniDate+'T12:00:00').getFullYear(),new Date(d.iniDate+'T12:00:00').getMonth()):null;
+    var iniKey=iniRaw?mesIdx(new Date(iniRaw+'T12:00:00').getFullYear(),new Date(iniRaw+'T12:00:00').getMonth()):null;
     filas.push({tipo:'depto',num:d.num,idx:i,nombre:esc(d.nombre),inmobTag:inmobTag,renta:fmt(d.renta),diaPago:d.diaPago,badge:badge,accion:accion,rowBg:rowBg,mesesContrato:mesesContrato,finKey:finKey,iniKey:iniKey,finStr:d.finStr||'',
       getPagado:function(key){var pp=PAGOS[d.num]&&PAGOS[d.num][key];return pp&&pp.pagado;},
       getToggle:function(key){return 'toggleHistPago('+d.num+','+key+')';}
