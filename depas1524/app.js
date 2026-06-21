@@ -470,7 +470,8 @@ function renderDeptos() {
     var pbadge=pp.pagado?'<span class="badge badge-green">✓ Pagado</span>':'<span class="badge badge-amber">Pendiente</span>';
     var ptel=PINOS.tel?'<a href="tel:'+esc(PINOS.tel)+'" style="color:inherit;text-decoration:none;font-weight:600">'+esc(PINOS.tel)+'</a>':'<strong>—</strong>';
     var pfin=PINOS.fin?'vence '+fmtD(PINOS.fin):'';
-    pc.innerHTML='<div class="card" style="border-left:3px solid #7c3aed;border-radius:0 12px 12px 0"><div class="flex" style="justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px"><div class="flex gap-8"><div style="background:#f3e8ff;border-radius:8px;padding:4px 10px;font-size:18px;min-width:40px;text-align:center">🏠</div><div><div style="font-weight:600;font-size:14px">'+esc(PINOS.nombre)+'  <span style="font-size:11px;background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:4px;padding:2px 7px">Los Pinos</span></div><div class="text-muted">'+(PINOS.dur||'1 año')+' · '+fmt(PINOS.monto||22000)+'/mes'+(pfin?' · '+pfin:'')+'</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+pbadge+'<button class="btn btn-sm" onclick="irAContratosPinos()"><i class="ti ti-edit"></i> Editar</button></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;font-size:12px;border-top:1px solid #eee;padding-top:.75rem"><div><span class="text-muted">Teléfono</span><br>'+ptel+'</div><div><span class="text-muted">Correo</span><br><strong>'+esc(PINOS.email||'—')+'</strong></div><div><span class="text-muted">Aval</span><br><strong>'+esc(PINOS.aval||'—')+'</strong></div></div></div>';
+    var pdep=PINOS.deposito?'<span class="badge badge-green">Dep. ✓</span>':'<span class="badge badge-red">Sin dep.</span>';
+    pc.innerHTML='<div class="card" style="border-left:3px solid #7c3aed;border-radius:0 12px 12px 0"><div class="flex" style="justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px"><div class="flex gap-8" style="cursor:pointer" onclick="irAContratosPinos()"><div style="background:#f3e8ff;border-radius:8px;padding:4px 10px;font-size:18px;min-width:40px;text-align:center">🏠</div><div><div style="font-weight:600;font-size:14px">'+esc(PINOS.nombre)+'  <span style="font-size:11px;background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:4px;padding:2px 7px">Los Pinos</span></div><div class="text-muted">'+(PINOS.dur||'1 año')+' · '+fmt(PINOS.monto||22000)+'/mes'+(pfin?' · '+pfin:'')+'</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+pbadge+pdep+'<button class="btn btn-sm" onclick="irAContratosPinos()"><i class="ti ti-edit"></i> Editar</button></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;font-size:12px;border-top:1px solid #eee;padding-top:.75rem"><div><span class="text-muted">Teléfono</span><br>'+ptel+'</div><div><span class="text-muted">Correo</span><br><strong>'+esc(PINOS.email||'—')+'</strong></div><div><span class="text-muted">Aval</span><br><strong>'+esc(PINOS.aval||'—')+'</strong></div></div></div>';
   } else {
     pc.innerHTML='<div class="card dashed-card"><div class="flex gap-8 center-content"><i class="ti ti-home muted-icon"></i><span class="text-muted">Los Pinos — sin inquilino · <a href="#" onclick="irAContratosPinos();return false" style="color:#7c3aed">Registrar</a></span></div></div>';
   }
@@ -1127,6 +1128,8 @@ function darDeAltaPinos(){
     fin:document.getElementById('p-fin').value,
     tel:document.getElementById('p-tel').value,
     email:document.getElementById('p-email').value,
+    deposito:document.getElementById('p-deposito').value==='si',
+    depositoMonto:parseFloat(document.getElementById('p-deposito-monto').value)||0,
     ineInqUrl:PINOS.ineInqUrl||'',
     ineAvalUrl:PINOS.ineAvalUrl||''
   };
@@ -1155,6 +1158,8 @@ function cargarFormPinos(){
   document.getElementById('p-fin').value=PINOS.fin||'';
   document.getElementById('p-tel').value=PINOS.tel||'';
   document.getElementById('p-email').value=PINOS.email||'';
+  document.getElementById('p-deposito').value=PINOS.deposito?'si':'no';
+  document.getElementById('p-deposito-monto').value=PINOS.depositoMonto||'';
   if(PINOS.ineInqUrl)document.getElementById('p-ine-inq-prev').innerHTML='<img src="'+PINOS.ineInqUrl+'" class="ine-preview" style="margin-top:6px">';
   if(PINOS.ineAvalUrl)document.getElementById('p-ine-aval-prev').innerHTML='<img src="'+PINOS.ineAvalUrl+'" class="ine-preview" style="margin-top:6px">';
   checkPinosBtn();
