@@ -1247,7 +1247,8 @@ function irAContratosPinos(){
 }
 
 function verPinos(){
-  if(!PINOS.nombre)return;
+  if(!PINOS.nombre){showToast('Sin inquilino en Los Pinos','error');return;}
+  try{
   var mi=MEX_MES,pp=PINOS_PAGOS[mi]||{};
   var ok=pp.pagado;
   document.getElementById('vp-nom').textContent=PINOS.nombre;
@@ -1286,6 +1287,7 @@ function verPinos(){
   } else {hh='<div class="text-muted" style="padding:8px 0">Sin fechas de contrato.</div>';}
   document.getElementById('vp-hist').innerHTML=hh;
   resetTabsG('vp-tabs');openModal('modal-ver-pinos');
+  }catch(e){console.error('verPinos error:',e);showToast('Error al abrir Los Pinos: '+e.message,'error');}
 }
 
 function toggleHistPagoPinos(key){
