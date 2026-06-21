@@ -435,14 +435,18 @@ function renderTablaCombinada(){
       accion='<button class="btn btn-xs btn-primary" onclick="tablaMarcarDepto('+d.num+')">✓ Pagar</button>';
     }
     var inmobTag=d.viaInmobiliaria?'<span style="font-size:9px;background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:3px;padding:1px 4px;margin-left:3px">🏢</span>':'';
-    // Meses del contrato
+    // Meses del contrato — si no hay fechas, al menos incluir todos los meses con pago registrado + el actual
     var mesesContrato={};
     if(d.iniDate&&d.finDate){
       var ini=new Date(d.iniDate+'T12:00:00'),fin=new Date(d.finDate+'T12:00:00');
       var cur=new Date(ini.getFullYear(),ini.getMonth(),1);
       while(cur<=fin){mesesContrato[mesIdx(cur.getFullYear(),cur.getMonth())]=true;cur.setMonth(cur.getMonth()+1);}
+    } else {
+      // Sin fechas: incluir meses con pagos registrados + mes actual
+      if(PAGOS[d.num]){Object.keys(PAGOS[d.num]).forEach(function(k){mesesContrato[parseInt(k)]=true;});}
+      mesesContrato[miActual]=true;
     }
-    filas.push({tipo:'depto',num:d.num,idx:i,nombre:esc(d.nombre),inmobTag:inmobTag,renta:fmt(d.renta),diaPago:'Día '+d.diaPago,badge:badge,accion:accion,rowBg:rowBg,mesesContrato:mesesContrato,
+    filas.push({tipo:'depto',num:d.num,idx:i,nombre:esc(d.nombre),inmobTag:inmobTag,renta:fmt(d.renta),diaPago:d.diaPago,badge:badge,accion:accion,rowBg:rowBg,mesesContrato:mesesContrato,
       getPagado:function(key){var pp=PAGOS[d.num]&&PAGOS[d.num][key];return pp&&pp.pagado;},
       getToggle:function(key){return 'toggleHistPago('+d.num+','+key+')';}
     });
@@ -512,8 +516,10 @@ function renderTablaCombinada(){
       var bg=pagado?'#D1FAE5':esFuturo?'#F3F4F6':esActual?'#FEF3C7':'#FEE2E2';
       var color=pagado?'#065F46':esFuturo?'#9ca3af':esActual?'#92400E':'#991B1B';
       var titulo=pagado?'Pagado':esFuturo?'Futuro':esActual?'Pendiente (mes actual)':'Sin pagar';
-      html+='<td style="padding:4px;border:1px solid #e5e7eb;background:'+bg+';text-align:center;cursor:'+(esFuturo?'default':'pointer')+'" title="'+titulo+'"'+(esFuturo?'':' onclick="'+f.getToggle(key)+';renderTablaCombinada()"')+'>'+
+      var diaLabel=f.diaPago?'<div style="font-size:10px;color:'+color+';opacity:0.75;margin-top:1px">'+f.diaPago+'</div>':'';
+      html+='<td style="padding:4px 6px;border:1px solid #e5e7eb;background:'+bg+';text-align:center;cursor:'+(esFuturo?'default':'pointer')+'" title="'+titulo+'"'+(esFuturo?'':' onclick="'+f.getToggle(key)+';renderTablaCombinada()"')+'>'+
         '<div style="font-size:13px;font-weight:700;color:'+color+'">'+(pagado?'✓':esFuturo?'':'—')+'</div>'+
+        diaLabel+
         '</td>';
     });
     html+='</tr>';
