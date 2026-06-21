@@ -1346,6 +1346,61 @@ function eliminarPinos(){
   renderDeptos();renderDashboard();
 }
 
+function editarPinos(){
+  if(!PINOS.nombre){showToast('Sin inquilino en Los Pinos','error');return;}
+  document.getElementById('ep-nombre').value=PINOS.nombre||'';
+  document.getElementById('ep-aval').value=PINOS.aval||'';
+  document.getElementById('ep-monto').value=PINOS.monto||22000;
+  document.getElementById('ep-dur').value=PINOS.dur||'UN AÑO';
+  document.getElementById('ep-ini').value=PINOS.ini||'';
+  document.getElementById('ep-fin').value=PINOS.fin||'';
+  document.getElementById('ep-tel').value=PINOS.tel||'';
+  document.getElementById('ep-email').value=PINOS.email||'';
+  document.getElementById('ep-deposito').value=PINOS.deposito?'si':'no';
+  document.getElementById('ep-deposito-monto').value=PINOS.depositoMonto||'';
+  document.getElementById('ep-inmobiliaria').checked=!!PINOS.viaInmobiliaria;
+  openModal('modal-editar-pinos');
+}
+
+function pFinEdit(){
+  var ini=document.getElementById('ep-ini').value,dur=document.getElementById('ep-dur').value;
+  if(!ini)return;
+  var d=new Date(ini+'T12:00:00');
+  var meses={'UN AÑO':12,'SEIS MESES':6,'DOS AÑOS':24};
+  d.setMonth(d.getMonth()+(meses[dur]||12));
+  document.getElementById('ep-fin').value=d.toISOString().split('T')[0];
+}
+
+function guardarEdicionPinos(){
+  var nom=document.getElementById('ep-nombre').value.trim();
+  if(!nom){showToast('Ingresa el nombre del inquilino','error');return;}
+  PINOS.nombre=nom;
+  PINOS.aval=document.getElementById('ep-aval').value.trim();
+  PINOS.monto=parseFloat(document.getElementById('ep-monto').value)||22000;
+  PINOS.dur=document.getElementById('ep-dur').value;
+  PINOS.ini=document.getElementById('ep-ini').value;
+  PINOS.fin=document.getElementById('ep-fin').value;
+  PINOS.tel=document.getElementById('ep-tel').value;
+  PINOS.email=document.getElementById('ep-email').value;
+  PINOS.deposito=document.getElementById('ep-deposito').value==='si';
+  PINOS.depositoMonto=parseFloat(document.getElementById('ep-deposito-monto').value)||0;
+  PINOS.viaInmobiliaria=document.getElementById('ep-inmobiliaria').checked;
+  savePinos();
+  closeModal('modal-editar-pinos');
+  showToast('Los Pinos actualizado','ok');
+  renderDeptos();renderDashboard();
+}
+
+function eliminarPinosDesdeModal(){
+  if(!confirm('¿Dar de baja al inquilino de Los Pinos?'))return;
+  closeModal('modal-editar-pinos');
+  PINOS={};PINOS_PAGOS={};
+  savePinos();savePinosPagos();
+  showToast('Inquilino de Los Pinos dado de baja','ok');
+  checkPinosBtn();
+  renderDeptos();renderDashboard();
+}
+
 function cargarFormPinos(){
   if(!PINOS.nombre)return;
   document.getElementById('p-nombre').value=PINOS.nombre||'';

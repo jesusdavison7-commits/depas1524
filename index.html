@@ -541,13 +541,49 @@
   <div class="modal modal-lg">
     <div class="modal-header">
       <div class="flex gap-8"><div class="avatar-lg" style="background:#f3e8ff;color:#6b21a8;font-size:22px;display:flex;align-items:center;justify-content:center">🏠</div><div><div class="modal-title" id="vp-nom"></div><div class="text-muted" id="vp-sub"></div></div></div>
-      <div class="flex gap-8"><button class="btn btn-sm btn-primary" onclick="irAContratosPinos();closeModal('modal-ver-pinos')"><i class="ti ti-edit"></i> Editar</button><button class="btn-icon" onclick="closeModal('modal-ver-pinos')"><i class="ti ti-x"></i></button></div>
+      <div class="flex gap-8"><button class="btn btn-sm btn-primary" onclick="closeModal('modal-ver-pinos');editarPinos()"><i class="ti ti-edit"></i> Editar</button><button class="btn-icon" onclick="closeModal('modal-ver-pinos')"><i class="ti ti-x"></i></button></div>
     </div>
     <div class="tabs" id="vp-tabs-nav"><button class="tab active" onclick="swTab('vpt-info','vp-tabs',this)">Información</button><button class="tab" onclick="swTab('vpt-hist','vp-tabs',this)">Pagos</button><button class="tab" onclick="swTab('vpt-ine','vp-tabs',this)">INE</button></div>
     <div id="vp-tabs">
       <div id="vpt-info" class="tab-panel active"><div id="vp-info"></div></div>
       <div id="vpt-hist" class="tab-panel"><div id="vp-hist"></div></div>
       <div id="vpt-ine" class="tab-panel"><div class="ine-grid" id="vp-ine"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR LOS PINOS -->
+<div class="modal-bg" id="modal-editar-pinos">
+  <div class="modal modal-lg">
+    <div class="modal-header"><div class="modal-title">✎ Editar — Los Pinos</div><button class="btn-icon" onclick="closeModal('modal-editar-pinos')"><i class="ti ti-x"></i></button></div>
+    <div class="form-row">
+      <div class="form-group"><label>Nombre inquilino</label><input type="text" id="ep-nombre" placeholder="Nombre completo"></div>
+      <div class="form-group"><label>Aval</label><input type="text" id="ep-aval" placeholder="Nombre del aval"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Renta mensual ($)</label><input type="number" id="ep-monto" placeholder="22000"></div>
+      <div class="form-group"><label>Duración</label><select id="ep-dur"><option>UN AÑO</option><option>SEIS MESES</option><option>1 MES</option><option>2 MESES</option><option>3 MESES</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Fecha inicio</label><input type="date" id="ep-ini" onchange="pFinEdit()"></div>
+      <div class="form-group"><label>Fecha fin</label><input type="date" id="ep-fin"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Teléfono</label><input type="tel" id="ep-tel"></div>
+      <div class="form-group"><label>Correo</label><input type="email" id="ep-email"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Depósito</label><select id="ep-deposito"><option value="si">Sí, pagado</option><option value="no">No</option></select></div>
+      <div class="form-group"><label>Monto depósito ($)</label><input type="number" id="ep-deposito-monto" placeholder="22000"></div>
+    </div>
+    <div style="margin:8px 0 4px;padding:10px 12px;background:#f9f6ff;border:1px solid #e2d9f3;border-radius:8px;display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="ep-inmobiliaria" style="accent-color:#7c3aed;width:15px;height:15px">
+      <label for="ep-inmobiliaria" style="margin:0;cursor:pointer">¿Vía inmobiliaria? <span style="color:#9ca3af;font-size:12px">(primer mes va a comisión)</span></label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-editar-pinos')">Cancelar</button>
+      <button class="btn btn-danger" onclick="eliminarPinosDesdeModal()" style="margin-right:auto"><i class="ti ti-trash"></i> Dar de baja</button>
+      <button class="btn btn-primary" onclick="guardarEdicionPinos()"><i class="ti ti-check"></i> Guardar</button>
     </div>
   </div>
 </div>
