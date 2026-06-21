@@ -442,9 +442,8 @@ function renderTablaCombinada(){
       var cur=new Date(ini.getFullYear(),ini.getMonth(),1);
       while(cur<=fin){mesesContrato[mesIdx(cur.getFullYear(),cur.getMonth())]=true;cur.setMonth(cur.getMonth()+1);}
     }
-    // Siempre incluir mes actual y meses con pagos registrados
+    // Siempre incluir mes actual
     mesesContrato[miActual]=true;
-    if(PAGOS[d.num]){Object.keys(PAGOS[d.num]).forEach(function(k){mesesContrato[parseInt(k)]=true;});}
     filas.push({tipo:'depto',num:d.num,idx:i,nombre:esc(d.nombre),inmobTag:inmobTag,renta:fmt(d.renta),diaPago:d.diaPago,badge:badge,accion:accion,rowBg:rowBg,mesesContrato:mesesContrato,
       getPagado:function(key){var pp=PAGOS[d.num]&&PAGOS[d.num][key];return pp&&pp.pagado;},
       getToggle:function(key){return 'toggleHistPago('+d.num+','+key+')';}
