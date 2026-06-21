@@ -158,21 +158,12 @@ function fechaStrToMesIdx(fechaStr) {
 function gastoMesIdx(g){ return g.mesIdx!==undefined?g.mesIdx:fechaStrToMesIdx(g.fecha); }
 
 function getPago(num,mi) { return PAGOS[num]&&PAGOS[num][mi]; }
-function primerMesPagado(numDepto){
-  var pagos=PAGOS[numDepto];if(!pagos)return null;
-  var keys=Object.keys(pagos).filter(function(k){return pagos[k]&&pagos[k].pagado;});
-  if(!keys.length)return null;
-  return Math.min.apply(null,keys.map(Number));
-}
 function cobradoMes(mi) {
   return DEPTOS.reduce(function(s,d){
     var p=getPago(d.num,mi);
     if(!p||!p.pagado)return s;
-    // Si es vía inmobiliaria, el primer mes pagado va a comisión y no suma a ganancias
-    if(d.viaInmobiliaria){
-      var primer=primerMesPagado(d.num);
-      if(primer!==null&&mi===primer)return s;
-    }
+    // Si es vía inmobiliaria, el mes de comisión no suma a ganancias
+    if(d.viaInmobiliaria&&d.inmobMesComision!=null&&mi===d.inmobMesComision)return s;
     return s+d.renta;
   },0);
 }
@@ -891,7 +882,13 @@ function darDeAlta(){
   var ineAval=_tmpIneAval||(existing?existing.ineAvalUrl||'':'');
   _tmpIneInq='';_tmpIneAval='';
   var viaInmob=document.getElementById('c-inmobiliaria').checked;
-  var obj={num:dep,nombre:nom,renta:renta,diaPago:dia,contrato:contrato,inicio:ini,finDate:finDate,finStr:finStr,deposito:true,viaInmobiliaria:viaInmob,tel:document.getElementById('c-tel').value,email:document.getElementById('c-email').value,curp:'',nacimiento:document.getElementById('c-nac').value,ocupacion:'',domicilio:document.getElementById('c-dom').value,notas:'',ineInqUrl:ineInq,ineAvalUrl:ineAval,bitacora:prevBitacora,aval:{nombre:document.getElementById('c-aval').value,parentesco:'',tel:'',email:'',curp:'',calle:'',colonia:'',ciudad:'',estado:'',cp:'',propiedad:'Sí',propDir:'',notas:''}};
+  // Guardamos el mesIdx del primer mes para no depender del historial de pagos
+  var inmobMesComision=null;
+  if(viaInmob){
+    var iniRef=ini?new Date(ini+'T12:00:00'):new Date();
+    inmobMesComision=mesIdx(iniRef.getFullYear(),iniRef.getMonth());
+  }
+  var obj={num:dep,nombre:nom,renta:renta,diaPago:dia,contrato:contrato,inicio:ini,finDate:finDate,finStr:finStr,deposito:true,viaInmobiliaria:viaInmob,inmobMesComision:inmobMesComision,tel:document.getElementById('c-tel').value,email:document.getElementById('c-email').value,curp:'',nacimiento:document.getElementById('c-nac').value,ocupacion:'',domicilio:document.getElementById('c-dom').value,notas:'',ineInqUrl:ineInq,ineAvalUrl:ineAval,bitacora:prevBitacora,aval:{nombre:document.getElementById('c-aval').value,parentesco:'',tel:'',email:'',curp:'',calle:'',colonia:'',ciudad:'',estado:'',cp:'',propiedad:'Sí',propDir:'',notas:''}};
   if(existing){DEPTOS[DEPTOS.indexOf(existing)]=obj;}else{DEPTOS.push(obj);DEPTOS.sort(function(a,b){return a.num-b.num;});}
   var vi=VACIOS.indexOf(dep);if(vi>-1)VACIOS.splice(vi,1);if(!PAGOS[dep])PAGOS[dep]={};
   saveDepto(obj);
