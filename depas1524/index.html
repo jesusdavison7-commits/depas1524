@@ -533,6 +533,22 @@
   </div>
 </div>
 
+<!-- MODAL VER LOS PINOS -->
+<div class="modal-bg" id="modal-ver-pinos">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="flex gap-8"><div class="avatar-lg" style="background:#f3e8ff;color:#6b21a8;font-size:22px;display:flex;align-items:center;justify-content:center">🏠</div><div><div class="modal-title" id="vp-nom"></div><div class="text-muted" id="vp-sub"></div></div></div>
+      <div class="flex gap-8"><button class="btn btn-sm btn-primary" onclick="irAContratosPinos();closeModal('modal-ver-pinos')"><i class="ti ti-edit"></i> Editar</button><button class="btn-icon" onclick="closeModal('modal-ver-pinos')"><i class="ti ti-x"></i></button></div>
+    </div>
+    <div class="tabs" id="vp-tabs-nav"><button class="tab active" onclick="swTab('vpt-info','vp-tabs',this)">Información</button><button class="tab" onclick="swTab('vpt-hist','vp-tabs',this)">Pagos</button><button class="tab" onclick="swTab('vpt-ine','vp-tabs',this)">INE</button></div>
+    <div id="vp-tabs">
+      <div id="vpt-info" class="tab-panel active"><div id="vp-info"></div></div>
+      <div id="vpt-hist" class="tab-panel"><div id="vp-hist"></div></div>
+      <div id="vpt-ine" class="tab-panel"><div class="ine-grid" id="vp-ine"></div></div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL SALIDA INQUILINO -->
 <div class="modal-bg" id="modal-salida">
   <div class="modal">

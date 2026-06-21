@@ -471,7 +471,7 @@ function renderDeptos() {
     var ptel=PINOS.tel?'<a href="tel:'+esc(PINOS.tel)+'" style="color:inherit;text-decoration:none;font-weight:600">'+esc(PINOS.tel)+'</a>':'<strong>—</strong>';
     var pfin=PINOS.fin?'vence '+fmtD(PINOS.fin):'';
     var pdep=PINOS.deposito?'<span class="badge badge-green">Dep. ✓</span>':'<span class="badge badge-red">Sin dep.</span>';
-    pc.innerHTML='<div class="card" style="border-left:3px solid #7c3aed;border-radius:0 12px 12px 0"><div class="flex" style="justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px"><div class="flex gap-8" style="cursor:pointer" onclick="irAContratosPinos()"><div style="background:#f3e8ff;border-radius:8px;padding:4px 10px;font-size:18px;min-width:40px;text-align:center">🏠</div><div><div style="font-weight:600;font-size:14px">'+esc(PINOS.nombre)+'  <span style="font-size:11px;background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:4px;padding:2px 7px">Los Pinos</span></div><div class="text-muted">'+(PINOS.dur||'1 año')+' · '+fmt(PINOS.monto||22000)+'/mes'+(pfin?' · '+pfin:'')+'</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+pbadge+pdep+'<button class="btn btn-sm" onclick="irAContratosPinos()"><i class="ti ti-edit"></i> Editar</button></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;font-size:12px;border-top:1px solid #eee;padding-top:.75rem"><div><span class="text-muted">Teléfono</span><br>'+ptel+'</div><div><span class="text-muted">Correo</span><br><strong>'+esc(PINOS.email||'—')+'</strong></div><div><span class="text-muted">Aval</span><br><strong>'+esc(PINOS.aval||'—')+'</strong></div></div></div>';
+    pc.innerHTML='<div class="card" style="border-left:3px solid #7c3aed;border-radius:0 12px 12px 0"><div class="flex" style="justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px"><div class="flex gap-8" style="cursor:pointer" onclick="verPinos()"><div style="background:#f3e8ff;border-radius:8px;padding:4px 10px;font-size:18px;min-width:40px;text-align:center">🏠</div><div><div style="font-weight:600;font-size:14px">'+esc(PINOS.nombre)+'  <span style="font-size:11px;background:#f3e8ff;color:#6b21a8;border:1px solid #d8b4fe;border-radius:4px;padding:2px 7px">Los Pinos</span></div><div class="text-muted">'+(PINOS.dur||'1 año')+' · '+fmt(PINOS.monto||22000)+'/mes'+(pfin?' · '+pfin:'')+'</div></div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'+pbadge+pdep+'<button class="btn btn-sm" onclick="irAContratosPinos()"><i class="ti ti-edit"></i> Editar</button></div></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;font-size:12px;border-top:1px solid #eee;padding-top:.75rem"><div><span class="text-muted">Teléfono</span><br>'+ptel+'</div><div><span class="text-muted">Correo</span><br><strong>'+esc(PINOS.email||'—')+'</strong></div><div><span class="text-muted">Aval</span><br><strong>'+esc(PINOS.aval||'—')+'</strong></div></div></div>';
   } else {
     pc.innerHTML='<div class="card dashed-card"><div class="flex gap-8 center-content"><i class="ti ti-home muted-icon"></i><span class="text-muted">Los Pinos — sin inquilino · <a href="#" onclick="irAContratosPinos();return false" style="color:#7c3aed">Registrar</a></span></div></div>';
   }
@@ -1106,6 +1106,57 @@ function irAContratosPinos(){
     swTab('ctab-pinos','ctabs',document.querySelector('#ctabs-nav .tab:nth-child(2)'));
     mostrarBotonesContrato('pinos');
   },100);
+}
+
+function verPinos(){
+  if(!PINOS.nombre)return;
+  var mi=MEX_MES,pp=PINOS_PAGOS[mi]||{};
+  var ok=pp.pagado;
+  document.getElementById('vp-nom').textContent=PINOS.nombre;
+  document.getElementById('vp-sub').textContent='Los Pinos · '+fmt(PINOS.monto||22000)+'/mes';
+  var telLink=PINOS.tel?'<a href="tel:'+esc(PINOS.tel)+'" style="color:inherit;text-decoration:none;font-weight:500">'+esc(PINOS.tel)+'</a>':'—';
+  var fields=[
+    ['Teléfono',telLink],
+    ['Correo',esc(PINOS.email||'—')],
+    ['Aval',esc(PINOS.aval||'—')],
+    ['Duración',esc(PINOS.dur||'—')],
+    ['Inicio',PINOS.ini?fmtD(PINOS.ini):'—'],
+    ['Vencimiento',PINOS.fin?fmtD(PINOS.fin):'—'],
+    ['Depósito',PINOS.deposito?'Sí ✓'+(PINOS.depositoMonto?' ('+fmt(PINOS.depositoMonto)+')':''):'No'],
+    ['Pago mes actual',ok?'✓ Pagado':'Pendiente']
+  ];
+  document.getElementById('vp-info').innerHTML=fields.map(function(f){
+    return '<div class="inf-row"><span class="text-muted">'+f[0]+'</span><span style="font-weight:500">'+f[1]+'</span></div>';
+  }).join('');
+  // INE
+  var ineHtml='';
+  if(PINOS.ineInqUrl){ineHtml+='<div><div class="text-muted" style="font-size:12px;margin-bottom:4px">INE Inquilino</div><img src="'+PINOS.ineInqUrl+'" style="max-width:100%;border-radius:8px;border:1px solid #eee"></div>';}
+  if(PINOS.ineAvalUrl){ineHtml+='<div><div class="text-muted" style="font-size:12px;margin-bottom:4px">INE Aval</div><img src="'+PINOS.ineAvalUrl+'" style="max-width:100%;border-radius:8px;border:1px solid #eee"></div>';}
+  document.getElementById('vp-ine').innerHTML=ineHtml||'<div class="text-muted center" style="padding:1rem">Sin fotos de INE</div>';
+  // Historial de pagos
+  var hh='';
+  if(PINOS.ini&&PINOS.fin){
+    var s=new Date(PINOS.ini+'T12:00:00'),e=new Date(PINOS.fin+'T12:00:00');
+    var months=[];var cur=new Date(s.getFullYear(),s.getMonth(),1);
+    while(cur<=e){months.push({y:cur.getFullYear(),m:cur.getMonth()});cur.setMonth(cur.getMonth()+1);}
+    hh='<div class="hist-grid" style="grid-template-columns:repeat('+Math.min(months.length,6)+',1fr)">';
+    months.forEach(function(cm){
+      var key=mesIdx(cm.y,cm.m);var p=PINOS_PAGOS[key];var pok=p&&p.pagado;
+      hh+='<div class="hist-cell '+(pok?'hist-pagado':'hist-vacio')+'" style="cursor:pointer" onclick="toggleHistPagoPinos('+key+')" title="Click para marcar/desmarcar"><div style="font-weight:500;font-size:11px">'+(pok?'✓':'—')+'</div><div style="font-size:10px">'+idxLabel(key)+'</div></div>';
+    });
+    hh+='</div>';
+  } else {hh='<div class="text-muted" style="padding:8px 0">Sin fechas de contrato.</div>';}
+  document.getElementById('vp-hist').innerHTML=hh;
+  resetTabsG('vp-tabs');openModal('modal-ver-pinos');
+}
+
+function toggleHistPagoPinos(key){
+  var p=PINOS_PAGOS[key];
+  if(p&&p.pagado){PINOS_PAGOS[key]={pagado:false,fecha:''};}
+  else{PINOS_PAGOS[key]={pagado:true,fecha:new Date().toISOString().split('T')[0]};}
+  savePinosPagos();
+  renderDashboard();renderDeptos();
+  verPinos();
 }
 
 function leerINEPinos(e,tipo){
