@@ -481,13 +481,15 @@ function renderTablaCombinada(){
 
   // Recolectar meses: solo los de contratos activos (no vacíos ni sin contrato)
   var todosKeys={};
+  // Siempre mostrar ventana fija: 3 meses antes del actual + 8 meses adelante
+  for(var wi=miActual-3;wi<=miActual+8;wi++){todosKeys[wi]=idxToYM(wi);}
+  // Agregar meses de contratos que caigan fuera de esa ventana
   filas.forEach(function(f){
     if(f.tipo==='vacio')return;
-    Object.keys(f.mesesContrato).forEach(function(k){todosKeys[k]=idxToYM(parseInt(k));});
+    Object.keys(f.mesesContrato).forEach(function(k){if(!todosKeys[k])todosKeys[k]=idxToYM(parseInt(k));});
   });
-  // Nunca mostrar más allá del fin del contrato más largo
-  var maxKey=Math.max.apply(null,Object.keys(todosKeys).map(Number).concat([miActual]));
-  var sortedKeys=Object.keys(todosKeys).map(Number).filter(function(k){return k<=maxKey;}).sort(function(a,b){return a-b;});
+  var maxKey=Math.max.apply(null,Object.keys(todosKeys).map(Number));
+  var sortedKeys=Object.keys(todosKeys).map(Number).sort(function(a,b){return a-b;});
 
   var TH='padding:6px 8px;border:1px solid #e5e7eb;white-space:nowrap;';
   var tabId='dash-cal-'+Date.now();
