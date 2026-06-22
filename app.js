@@ -481,8 +481,9 @@ function renderTablaCombinada(){
 
   // Recolectar meses: solo los de contratos activos (no vacíos ni sin contrato)
   var todosKeys={};
-  // Siempre mostrar ventana fija: 3 meses antes del actual + 8 meses adelante
-  for(var wi=miActual-3;wi<=miActual+8;wi++){todosKeys[wi]=idxToYM(wi);}
+  // Mostrar desde junio 2026 (origen de la app) hasta 8 meses adelante del actual
+  var winIni=Math.min(mesIdx(2026,5),miActual);
+  for(var wi=winIni;wi<=miActual+8;wi++){todosKeys[wi]=idxToYM(wi);}
   // Agregar meses de contratos que caigan fuera de esa ventana
   filas.forEach(function(f){
     if(f.tipo==='vacio')return;
