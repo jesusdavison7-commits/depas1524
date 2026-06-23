@@ -438,9 +438,10 @@ function renderTablaCombinada(){
     // Meses del contrato: desde inicio hasta finDate + siempre el mes actual
     var mesesContrato={};
     var iniRaw=d.inicio||d.iniDate||'';
-    if(iniRaw&&d.finDate){
-      var ini=new Date(iniRaw+'T12:00:00'),fin=new Date(d.finDate+'T12:00:00');
-      var cur=new Date(ini.getFullYear(),ini.getMonth(),1);
+    if(d.finDate){
+      var fin=new Date(d.finDate+'T12:00:00');
+      var iniRef=iniRaw?new Date(iniRaw+'T12:00:00'):new Date(fin.getFullYear(),fin.getMonth()-11,1);
+      var cur=new Date(iniRef.getFullYear(),iniRef.getMonth(),1);
       while(cur<=fin){mesesContrato[mesIdx(cur.getFullYear(),cur.getMonth())]=true;cur.setMonth(cur.getMonth()+1);}
     }
     // Siempre incluir mes actual
