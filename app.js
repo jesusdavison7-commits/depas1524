@@ -1741,11 +1741,13 @@ function guardarInq(){
   var renta=parseFloat(document.getElementById('f-renta').value)||5000,dia=parseInt(document.getElementById('f-dia').value)||1;
   var contrato=document.getElementById('f-contrato').value,inicio=document.getElementById('f-inicio').value;
   var mesesMapModal={'1 mes':1,'2 meses':2,'3 meses':3,'4 meses':4,'5 meses':5,'6 meses':6,'7 meses':7,'8 meses':8,'9 meses':9,'10 meses':10,'11 meses':11,'1 año':12,'Mensual':1};
-  var mesesN=mesesMapModal[contrato]||6,finDate='',finStr='—';
+  var mesesN=mesesMapModal[contrato]||6;
+  var prevD=DEPTOS[editIdx];
+  var finDate=prevD.finDate||'',finStr=prevD.finStr||'—';
   if(inicio){var fd=new Date(inicio+'T12:00:00');fd.setMonth(fd.getMonth()+mesesN);finDate=fd.toISOString().split('T')[0];finStr=fd.getDate()+' '+MS[fd.getMonth()]+' '+fd.getFullYear();}
   var aval={nombre:document.getElementById('a-nombre').value,parentesco:document.getElementById('a-par').value,tel:document.getElementById('a-tel').value,email:document.getElementById('a-email').value,curp:document.getElementById('a-curp').value,calle:document.getElementById('a-calle').value,colonia:document.getElementById('a-col').value,ciudad:document.getElementById('a-ciudad').value,estado:document.getElementById('a-estado').value,cp:document.getElementById('a-cp').value,propiedad:document.getElementById('a-prop').value,propDir:document.getElementById('a-prop-dir').value,notas:document.getElementById('a-notas').value};
   var num=DEPTOS[editIdx].num;
-  var obj={num:num,nombre:nombre,renta:renta,diaPago:dia,contrato:contrato,finDate:finDate,finStr:finStr,deposito:document.getElementById('f-dep').value==='Sí, pagado',tel:document.getElementById('f-tel').value,email:document.getElementById('f-email').value,curp:document.getElementById('f-curp').value,nacimiento:document.getElementById('f-nac').value,ocupacion:document.getElementById('f-ocup').value,domicilio:document.getElementById('f-dom').value,notas:document.getElementById('f-notas').value,ineInqUrl:DEPTOS[editIdx].ineInqUrl||'',ineAvalUrl:DEPTOS[editIdx].ineAvalUrl||'',bitacora:DEPTOS[editIdx].bitacora||[],aval:aval};
+  var obj={num:num,nombre:nombre,renta:renta,diaPago:dia,contrato:contrato,inicio:inicio||prevD.inicio||'',finDate:finDate,finStr:finStr,deposito:document.getElementById('f-dep').value==='Sí, pagado',tel:document.getElementById('f-tel').value,email:document.getElementById('f-email').value,curp:document.getElementById('f-curp').value,nacimiento:document.getElementById('f-nac').value,ocupacion:document.getElementById('f-ocup').value,domicilio:document.getElementById('f-dom').value,notas:document.getElementById('f-notas').value,ineInqUrl:DEPTOS[editIdx].ineInqUrl||'',ineAvalUrl:DEPTOS[editIdx].ineAvalUrl||'',bitacora:DEPTOS[editIdx].bitacora||[],aval:aval};
   DEPTOS[editIdx]=obj;saveDepto(obj);closeModal('modal-inq');renderAll();
 }
 function _inePanel(tipo,d,idx){
