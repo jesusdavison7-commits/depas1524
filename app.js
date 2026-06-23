@@ -997,7 +997,9 @@ function cargarContrato(){
   if(v===''){if(elimBox)elimBox.style.display='none';return;}
   var d=DEPTOS[parseInt(v)];
   document.getElementById('c-nombre').value=d.nombre;document.getElementById('c-aval').value=d.aval&&d.aval.nombre?d.aval.nombre:'';
-  document.getElementById('c-depto').value=d.num;cPiso();document.getElementById('c-monto').value=d.renta||5000;
+  var depSel=document.getElementById('c-depto');
+  if(depSel&&!depSel.querySelector('option[value="'+d.num+'"]')){depSel.innerHTML+='<option value="'+d.num+'">Depto '+d.num+'</option>';}
+  depSel.value=d.num;cPiso();document.getElementById('c-monto').value=d.renta||5000;
   document.getElementById('c-dur').value=d.contrato==='1 año'?'UN AÑO':'SEIS MESES';
   document.getElementById('c-tel').value=d.tel||'';document.getElementById('c-email').value=d.email||'';
   document.getElementById('c-nac').value=d.nacimiento||'';document.getElementById('c-dom').value=d.domicilio||'';
