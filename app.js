@@ -1002,6 +1002,7 @@ function cargarContrato(){
   document.getElementById('c-tel').value=d.tel||'';document.getElementById('c-email').value=d.email||'';
   document.getElementById('c-nac').value=d.nacimiento||'';document.getElementById('c-dom').value=d.domicilio||'';
   document.getElementById('c-inmobiliaria').checked=d.viaInmobiliaria||false;
+  if(d.inicio){document.getElementById('c-ini').value=d.inicio;cFin();}else{document.getElementById('c-ini').value='';document.getElementById('c-fin').value='';}
   if(elimBox)elimBox.style.display='block';checkAltaBtn();prevContrato();
 }
 function checkAltaBtn(){var nom=document.getElementById('c-nombre').value.trim(),dep=document.getElementById('c-depto').value,box=document.getElementById('alta-box');if(box)box.style.display=(nom&&dep)?'block':'none';}
