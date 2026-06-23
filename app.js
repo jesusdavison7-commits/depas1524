@@ -480,17 +480,14 @@ function renderTablaCombinada(){
     });
   }
 
-  var FIN_TABLA=mesIdx(2026,5); // junio 2026: mes mínimo visible en la tabla
   var todosKeys={};
-  // Ventana base: junio 2026 hasta 8 meses adelante del actual
-  for(var wi=FIN_TABLA;wi<=miActual+8;wi++){todosKeys[wi]=idxToYM(wi);}
-  // Agregar meses de contratos futuros (fin de contrato más allá de la ventana)
+  // Ventana fija de 12 columnas: 2 meses atrás + actual + 9 adelante
+  var winIni=miActual-2, winFin=miActual+9;
+  for(var wi=winIni;wi<=winFin;wi++){todosKeys[wi]=idxToYM(wi);}
+  // Si algún fin de contrato cae fuera de la ventana, añadir solo ese mes
   filas.forEach(function(f){
-    if(f.tipo==='vacio')return;
-    Object.keys(f.mesesContrato).forEach(function(k){
-      var ki=parseInt(k);
-      if(ki>=FIN_TABLA&&!todosKeys[ki])todosKeys[ki]=idxToYM(ki);
-    });
+    if(f.tipo==='vacio'||!f.finKey)return;
+    if(!todosKeys[f.finKey])todosKeys[f.finKey]=idxToYM(f.finKey);
   });
   var sortedKeys=Object.keys(todosKeys).map(Number).sort(function(a,b){return a-b;});
 
