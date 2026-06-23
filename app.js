@@ -1710,9 +1710,13 @@ function desmarcarPago(num){
 function editarInq(idx){
   editIdx=idx; var d=DEPTOS[idx];
   document.getElementById('mi-title').textContent='Editar — Depto '+d.num;
-  var sel=document.getElementById('f-depto');sel.innerHTML='<option value="'+d.num+'">Depto '+d.num+'</option>';
+  var sel=document.getElementById('f-depto');
+  sel.innerHTML='<option value="'+d.num+'">Depto '+d.num+' (actual)</option>';
+  VACIOS.forEach(function(n){sel.innerHTML+='<option value="'+n+'">Depto '+n+'</option>';});
+  sel.value=d.num;
   document.getElementById('f-nombre').value=d.nombre||'';document.getElementById('f-tel').value=d.tel||'';document.getElementById('f-email').value=d.email||'';
   document.getElementById('f-curp').value=d.curp||'';document.getElementById('f-nac').value=d.nacimiento||'';document.getElementById('f-contrato').value=d.contrato||'6 meses';
+  document.getElementById('f-inicio').value=d.inicio||'';
   document.getElementById('f-renta').value=d.renta||5000;document.getElementById('f-dia').value=d.diaPago||1;document.getElementById('f-ocup').value=d.ocupacion||'';
   document.getElementById('f-dom').value=d.domicilio||'';document.getElementById('f-dep').value=d.deposito?'Sí, pagado':'No';document.getElementById('f-notas').value=d.notas||'';
   var a=d.aval||{};
@@ -1744,8 +1748,10 @@ function guardarInq(){
   var finDate=prevD.finDate||'',finStr=prevD.finStr||'—';
   if(inicio){var fd=new Date(inicio+'T12:00:00');fd.setMonth(fd.getMonth()+mesesN);finDate=fd.toISOString().split('T')[0];finStr=fd.getDate()+' '+MS[fd.getMonth()]+' '+fd.getFullYear();}
   var aval={nombre:document.getElementById('a-nombre').value,parentesco:document.getElementById('a-par').value,tel:document.getElementById('a-tel').value,email:document.getElementById('a-email').value,curp:document.getElementById('a-curp').value,calle:document.getElementById('a-calle').value,colonia:document.getElementById('a-col').value,ciudad:document.getElementById('a-ciudad').value,estado:document.getElementById('a-estado').value,cp:document.getElementById('a-cp').value,propiedad:document.getElementById('a-prop').value,propDir:document.getElementById('a-prop-dir').value,notas:document.getElementById('a-notas').value};
-  var num=DEPTOS[editIdx].num;
-  var obj={num:num,nombre:nombre,renta:renta,diaPago:dia,contrato:contrato,inicio:inicio||prevD.inicio||'',finDate:finDate,finStr:finStr,deposito:document.getElementById('f-dep').value==='Sí, pagado',tel:document.getElementById('f-tel').value,email:document.getElementById('f-email').value,curp:document.getElementById('f-curp').value,nacimiento:document.getElementById('f-nac').value,ocupacion:document.getElementById('f-ocup').value,domicilio:document.getElementById('f-dom').value,notas:document.getElementById('f-notas').value,ineInqUrl:DEPTOS[editIdx].ineInqUrl||'',ineAvalUrl:DEPTOS[editIdx].ineAvalUrl||'',bitacora:DEPTOS[editIdx].bitacora||[],aval:aval};
+  var oldNum=DEPTOS[editIdx].num;
+  var newNum=parseInt(document.getElementById('f-depto').value)||oldNum;
+  var obj={num:newNum,nombre:nombre,renta:renta,diaPago:dia,contrato:contrato,inicio:inicio||prevD.inicio||'',finDate:finDate,finStr:finStr,deposito:document.getElementById('f-dep').value==='Sí, pagado',tel:document.getElementById('f-tel').value,email:document.getElementById('f-email').value,curp:document.getElementById('f-curp').value,nacimiento:document.getElementById('f-nac').value,ocupacion:document.getElementById('f-ocup').value,domicilio:document.getElementById('f-dom').value,notas:document.getElementById('f-notas').value,ineInqUrl:DEPTOS[editIdx].ineInqUrl||'',ineAvalUrl:DEPTOS[editIdx].ineAvalUrl||'',bitacora:DEPTOS[editIdx].bitacora||[],aval:aval};
+  if(newNum!==oldNum){delDepto(oldNum);VACIOS=VACIOS.filter(function(v){return v!==newNum;});VACIOS.push(oldNum);VACIOS.sort(function(a,b){return a-b;});}
   DEPTOS[editIdx]=obj;saveDepto(obj);closeModal('modal-inq');renderAll();
 }
 function _inePanel(tipo,d,idx){
