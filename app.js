@@ -480,17 +480,18 @@ function renderTablaCombinada(){
     });
   }
 
-  // Recolectar meses: solo los de contratos activos (no vacíos ni sin contrato)
+  var FIN_TABLA=mesIdx(2026,5); // junio 2026: mes mínimo visible en la tabla
   var todosKeys={};
-  // Mostrar desde junio 2026 (origen de la app) hasta 8 meses adelante del actual
-  var winIni=Math.min(mesIdx(2026,5),miActual);
-  for(var wi=winIni;wi<=miActual+8;wi++){todosKeys[wi]=idxToYM(wi);}
-  // Agregar meses de contratos que caigan fuera de esa ventana
+  // Ventana base: junio 2026 hasta 8 meses adelante del actual
+  for(var wi=FIN_TABLA;wi<=miActual+8;wi++){todosKeys[wi]=idxToYM(wi);}
+  // Agregar meses de contratos futuros (fin de contrato más allá de la ventana)
   filas.forEach(function(f){
     if(f.tipo==='vacio')return;
-    Object.keys(f.mesesContrato).forEach(function(k){if(!todosKeys[k])todosKeys[k]=idxToYM(parseInt(k));});
+    Object.keys(f.mesesContrato).forEach(function(k){
+      var ki=parseInt(k);
+      if(ki>=FIN_TABLA&&!todosKeys[ki])todosKeys[ki]=idxToYM(ki);
+    });
   });
-  var maxKey=Math.max.apply(null,Object.keys(todosKeys).map(Number));
   var sortedKeys=Object.keys(todosKeys).map(Number).sort(function(a,b){return a-b;});
 
   var TH='padding:6px 8px;border:1px solid #e5e7eb;white-space:nowrap;';
