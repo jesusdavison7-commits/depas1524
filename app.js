@@ -1755,7 +1755,13 @@ function guardarInq(){
   var oldNum=DEPTOS[editIdx].num;
   var newNum=parseInt(document.getElementById('f-depto').value)||oldNum;
   var viaInmob=document.getElementById('f-inmobiliaria').checked;
-  var obj={num:newNum,nombre:nombre,renta:renta,diaPago:dia,contrato:contrato,inicio:inicio||prevD.inicio||'',finDate:finDate,finStr:finStr,deposito:document.getElementById('f-dep').value==='Sí, pagado',viaInmobiliaria:viaInmob,inmobMesComision:viaInmob?(prevD.inmobMesComision!=null?prevD.inmobMesComision:null):null,tel:document.getElementById('f-tel').value,email:document.getElementById('f-email').value,curp:document.getElementById('f-curp').value,nacimiento:document.getElementById('f-nac').value,ocupacion:document.getElementById('f-ocup').value,domicilio:document.getElementById('f-dom').value,notas:document.getElementById('f-notas').value,ineInqUrl:DEPTOS[editIdx].ineInqUrl||'',ineAvalUrl:DEPTOS[editIdx].ineAvalUrl||'',bitacora:DEPTOS[editIdx].bitacora||[],aval:aval};
+  var iniRef=inicio||prevD.inicio||'';
+  var inmobMes=null;
+  if(viaInmob){
+    if(prevD.inmobMesComision!=null){inmobMes=prevD.inmobMesComision;}
+    else if(iniRef){var ir=new Date(iniRef+'T12:00:00');inmobMes=mesIdx(ir.getFullYear(),ir.getMonth());}
+  }
+  var obj={num:newNum,nombre:nombre,renta:renta,diaPago:dia,contrato:contrato,inicio:iniRef,finDate:finDate,finStr:finStr,deposito:document.getElementById('f-dep').value==='Sí, pagado',viaInmobiliaria:viaInmob,inmobMesComision:inmobMes,tel:document.getElementById('f-tel').value,email:document.getElementById('f-email').value,curp:document.getElementById('f-curp').value,nacimiento:document.getElementById('f-nac').value,ocupacion:document.getElementById('f-ocup').value,domicilio:document.getElementById('f-dom').value,notas:document.getElementById('f-notas').value,ineInqUrl:DEPTOS[editIdx].ineInqUrl||'',ineAvalUrl:DEPTOS[editIdx].ineAvalUrl||'',bitacora:DEPTOS[editIdx].bitacora||[],aval:aval};
   if(newNum!==oldNum){delDepto(oldNum);VACIOS=VACIOS.filter(function(v){return v!==newNum;});VACIOS.push(oldNum);VACIOS.sort(function(a,b){return a-b;});}
   DEPTOS[editIdx]=obj;saveDepto(obj);closeModal('modal-inq');renderAll();
 }
