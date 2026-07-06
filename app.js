@@ -1052,7 +1052,7 @@ function confirmarSalida(){
   });
   INQ_HIST.unshift(entrada);saveInqHist();
   delDepto(d.num);DEPTOS.splice(_salidaIdx,1);VACIOS.push(d.num);VACIOS.sort(function(a,b){return a-b;});
-  _salidaIdx=null;closeModal('modal-salida');
+  _salidaIdx=null;editIdx=null;closeModal('modal-salida');
   document.getElementById('contrato-gen-msg').innerHTML='';renderAll();
 }
 function darDeAlta(){
@@ -1735,12 +1735,15 @@ function editarInq(idx){
 }
 function eliminarInq(){
   if(editIdx===null)return;var d=DEPTOS[editIdx];
-  if(!confirm('¿Eliminar a '+d.nombre+' del Depto '+d.num+'?'))return;
-  var ahora=new Date();
-  INQ_HIST.unshift(Object.assign({},d,{_eliminado:ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear()}));
-  saveInqHist();
-  delDepto(d.num);DEPTOS.splice(editIdx,1);VACIOS.push(d.num);VACIOS.sort(function(a,b){return a-b;});
-  editIdx=null;closeModal('modal-inq');renderAll();
+  closeModal('modal-inq');
+  _salidaIdx=editIdx;
+  document.getElementById('salida-nombre').textContent=d.nombre+' — Depto '+d.num;
+  document.getElementById('salida-deposito').textContent=d.deposito?fmt(d.renta):'Sin depósito registrado';
+  document.getElementById('salida-dep-accion').value=d.deposito?'devuelto':'sin-deposito';
+  document.getElementById('salida-dano-box').style.display='none';
+  document.getElementById('salida-notas').value='';
+  if(d.deposito){document.getElementById('salida-dano-devuelto').value=d.renta;}
+  openModal('modal-salida');
 }
 function guardarInq(){
   var nombre=document.getElementById('f-nombre').value.trim();if(!nombre){alert('El nombre es obligatorio');return;}
