@@ -361,47 +361,66 @@
       <div class="page-header"><h2 class="page-title">Mantenimiento</h2></div>
 
       <!-- Aires -->
-      <div class="card">
-        <div class="card-header"><span class="card-title"><i class="ti ti-wind" style="margin-right:6px;color:#1D9E75"></i>Aires acondicionados</span><span class="text-muted" style="font-size:12px">Servicio anual · Agosto 2026</span></div>
-        <div id="aires-chips" style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 8px"></div>
-        <details id="aires-hist-details" style="margin-top:4px">
+      <div class="card" style="border-left:3px solid #1D9E75">
+        <div class="card-header">
+          <span class="card-title"><i class="ti ti-wind" style="margin-right:6px;color:#1D9E75"></i>Aires acondicionados</span>
+          <span class="text-muted" style="font-size:12px">Servicio anual · Agosto 2026</span>
+        </div>
+        <div id="aires-chips" style="display:flex;flex-wrap:wrap;gap:8px;padding:6px 0 10px"></div>
+        <details id="aires-hist-details">
           <summary style="cursor:pointer;font-size:12px;color:#6b6b6b;padding:4px 0">Ver historial</summary>
           <div id="aires-hist-inner" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px"></div>
         </details>
+        <div style="margin-top:12px;border-top:1px solid #f0f0ee;padding-top:10px">
+          <div id="aires-notas-list"></div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <input type="text" id="aires-nota-inp" placeholder="Agregar nota..." style="flex:1;padding:5px 8px;border:1px solid #d0d0ce;border-radius:6px;font-size:12px;font-family:inherit" onkeydown="if(event.key==='Enter')agregarNotaSeccion('aires')">
+            <button class="btn btn-sm" onclick="agregarNotaSeccion('aires')">+ Nota</button>
+          </div>
+        </div>
       </div>
 
       <!-- Lavadoras -->
-      <div class="card">
-        <div class="card-header"><span class="card-title"><i class="ti ti-wash" style="margin-right:6px;color:#1D9E75"></i>Lavadoras</span><span class="text-muted" style="font-size:12px">Servicio anual · Agosto 2026</span></div>
-        <div id="lavadoras-list" style="display:flex;flex-direction:column;gap:8px;padding:4px 0 8px"></div>
-        <details id="lav-hist-details" style="margin-top:4px">
+      <div class="card" style="border-left:3px solid #185FA5">
+        <div class="card-header">
+          <span class="card-title"><i class="ti ti-wash" style="margin-right:6px;color:#185FA5"></i>Lavadoras</span>
+          <span class="text-muted" style="font-size:12px">Servicio anual · Agosto 2026</span>
+        </div>
+        <div id="lavadoras-list" style="display:flex;flex-direction:column;gap:0;padding:6px 0 10px"></div>
+        <details id="lav-hist-details">
           <summary style="cursor:pointer;font-size:12px;color:#6b6b6b;padding:4px 0">Ver historial</summary>
           <div id="lav-hist-inner" style="margin-top:10px"></div>
         </details>
+        <div style="margin-top:12px;border-top:1px solid #f0f0ee;padding-top:10px">
+          <div id="lav-notas-list"></div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <input type="text" id="lav-nota-inp" placeholder="Agregar nota..." style="flex:1;padding:5px 8px;border:1px solid #d0d0ce;border-radius:6px;font-size:12px;font-family:inherit" onkeydown="if(event.key==='Enter')agregarNotaSeccion('lavadoras')">
+            <button class="btn btn-sm" onclick="agregarNotaSeccion('lavadoras')">+ Nota</button>
+          </div>
+        </div>
       </div>
 
       <!-- Infraestructura -->
-      <div class="card">
-        <div class="card-header"><span class="card-title"><i class="ti ti-tool" style="margin-right:6px;color:#1D9E75"></i>Infraestructura</span></div>
+      <div class="card" style="border-left:3px solid #C07A1A">
+        <div class="card-header">
+          <span class="card-title"><i class="ti ti-tool" style="margin-right:6px;color:#C07A1A"></i>Infraestructura</span>
+        </div>
         <div id="infra-list" style="display:flex;flex-direction:column;gap:0"></div>
         <details id="infra-hist-details" style="margin-top:8px">
           <summary style="cursor:pointer;font-size:12px;color:#6b6b6b;padding:4px 0">Ver historial</summary>
           <div id="infra-hist-inner" style="margin-top:10px"></div>
         </details>
+        <div style="margin-top:12px;border-top:1px solid #f0f0ee;padding-top:10px">
+          <div id="infra-notas-list"></div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <input type="text" id="infra-nota-inp" placeholder="Agregar nota..." style="flex:1;padding:5px 8px;border:1px solid #d0d0ce;border-radius:6px;font-size:12px;font-family:inherit" onkeydown="if(event.key==='Enter')agregarNotaSeccion('infra')">
+            <button class="btn btn-sm" onclick="agregarNotaSeccion('infra')">+ Nota</button>
+          </div>
+        </div>
       </div>
 
       <div style="text-align:center;padding:4px 0 8px">
         <button class="btn btn-sm" onclick="openModal('modal-protocolo-agua')" style="color:#A32D2D;border-color:#f0c0c0"><i class="ti ti-alert-triangle"></i> Ver protocolo falta de agua</button>
-      </div>
-
-      <!-- Notas de mantenimiento -->
-      <div class="card">
-        <div class="card-title mb-12"><i class="ti ti-notes" style="color:#534AB7;margin-right:6px"></i>Notas</div>
-        <div id="mant-notas-list" style="margin-bottom:12px"></div>
-        <div style="display:flex;gap:8px">
-          <textarea id="mant-nota-inp" rows="2" placeholder="Escribe una nota..." style="flex:1;resize:vertical;padding:8px;border:1px solid #d0d0ce;border-radius:8px;font-size:13px;font-family:inherit"></textarea>
-          <button class="btn btn-primary btn-sm" onclick="agregarNotaMant()" style="align-self:flex-end">Agregar</button>
-        </div>
       </div>
 
     </div>

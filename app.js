@@ -70,7 +70,7 @@ var FIN_HIST = {};
 var FONDO_INICIAL = 0;
 var MANT_STATE = {};
 var GASTOS_MANT = [];
-var MANT_NOTAS = [];
+var MANT_NOTAS = {aires:[],lavadoras:[],infra:[]};
 var MANT_HIST_OPEN = false;
 var FIN_HIST_OPEN = false;
 var editIdx = null;
@@ -277,7 +277,7 @@ function loadRest() {
     return db.collection('config').doc('mantenimiento').get();
   }).then(function(snap){
     MANT_STATE=snap.exists?snap.data().state||{}:{};
-    MANT_NOTAS=snap.exists?snap.data().notas||[]:[];
+    var _n=snap.exists?snap.data().notas||{}:{};MANT_NOTAS={aires:Array.isArray(_n.aires)?_n.aires:[],lavadoras:Array.isArray(_n.lavadoras)?_n.lavadoras:[],infra:Array.isArray(_n.infra)?_n.infra:[]};
     return db.collection('config').doc('finHistorial').get();
   }).then(function(snap){
     if(snap.exists){FIN_HIST=snap.data().data||{};FONDO_INICIAL=snap.data().fondoInicial||0;BOLSA_JESUS=snap.data().bolsaJesus||0;BOLSA_CARLITOS=snap.data().bolsaCarlitos||0;BOLSA_MANT=snap.data().bolsaMant||0;}
@@ -1644,35 +1644,39 @@ function renderMantenimiento(){
       infraH.innerHTML+=g+'</div>';
     });
   }
-  // Notas
-  renderMantNotas();
+  // Notas por sección
+  ['aires','lavadoras','infra'].forEach(function(s){renderNotasSeccion(s);});
 }
 
-function renderMantNotas(){
-  var el=document.getElementById('mant-notas-list');if(!el)return;
-  if(!MANT_NOTAS.length){el.innerHTML='<div style="font-size:13px;color:#999;padding:4px 0">Sin notas aún</div>';return;}
-  el.innerHTML=MANT_NOTAS.map(function(n,i){
-    return '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f0f0ee;gap:8px">'+
-      '<div><div style="font-size:13px">'+esc(n.texto)+'</div><div style="font-size:11px;color:#999;margin-top:2px">'+esc(n.fecha)+'</div></div>'+
-      '<button style="background:none;border:none;cursor:pointer;color:#ccc;font-size:14px;padding:0 4px;flex-shrink:0" onclick="eliminarNotaMant('+i+')" title="Eliminar">✕</button>'+
+var _NOTAS_EL={aires:['aires-notas-list','aires-nota-inp'],lavadoras:['lav-notas-list','lav-nota-inp'],infra:['infra-notas-list','infra-nota-inp']};
+function renderNotasSeccion(sec){
+  var ids=_NOTAS_EL[sec];if(!ids)return;
+  var el=document.getElementById(ids[0]);if(!el)return;
+  var notas=MANT_NOTAS[sec]||[];
+  if(!notas.length){el.innerHTML='';return;}
+  el.innerHTML=notas.map(function(n,i){
+    return '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:1px solid #f5f5f3;gap:8px">'+
+      '<div><div style="font-size:12px">'+esc(n.texto)+'</div><div style="font-size:10px;color:#bbb;margin-top:1px">'+esc(n.fecha)+'</div></div>'+
+      '<button style="background:none;border:none;cursor:pointer;color:#ccc;font-size:13px;padding:0 2px;flex-shrink:0" onclick="eliminarNotaSeccion(\''+sec+'\','+i+')" title="Eliminar">✕</button>'+
     '</div>';
   }).join('');
 }
-function agregarNotaMant(){
-  var inp=document.getElementById('mant-nota-inp');
-  var texto=inp?inp.value.trim():'';
-  if(!texto)return;
+function agregarNotaSeccion(sec){
+  var ids=_NOTAS_EL[sec];if(!ids)return;
+  var inp=document.getElementById(ids[1]);
+  var texto=inp?inp.value.trim():'';if(!texto)return;
   var fecha=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
-  MANT_NOTAS.unshift({texto:texto,fecha:fecha});
+  if(!MANT_NOTAS[sec])MANT_NOTAS[sec]=[];
+  MANT_NOTAS[sec].unshift({texto:texto,fecha:fecha});
   inp.value='';
   try{saveMantNotas();}catch(e){}
-  renderMantNotas();
+  renderNotasSeccion(sec);
 }
-function eliminarNotaMant(i){
+function eliminarNotaSeccion(sec,i){
   if(!confirm('¿Eliminar esta nota?'))return;
-  MANT_NOTAS.splice(i,1);
+  MANT_NOTAS[sec].splice(i,1);
   try{saveMantNotas();}catch(e){}
-  renderMantNotas();
+  renderNotasSeccion(sec);
 }
 
 // Días reales en un mes
