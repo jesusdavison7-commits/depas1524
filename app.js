@@ -761,7 +761,7 @@ function renderFinanzas(){
   var gastosMes=GASTOS_MANT.filter(function(g){return gastoMesIdx(g)===mi;});
   if(gastosLines){gastosLines.innerHTML=gastosMes.map(function(g){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;color:#6b6b6b;border-top:1px solid #ececea"><span>'+g.desc+'</span><span style="color:#c0392b;font-weight:500">-'+fmt(g.monto)+'</span></div>';}).join('');}
   // Bolsa mantenimiento: valor manual controlado por el usuario
-  setT('bolsa-jesus-val',fmt(BOLSA_JESUS));setT('bolsa-carlitos-val',fmt(BOLSA_CARLITOS));setT('bolsa-mant-val',fmt(BOLSA_MANT));
+  setT('bolsa-mant-val',fmt(BOLSA_MANT));
   setT('f-jesus-det','25% neto ('+fmt(f.neto*0.25)+') + cobro a Carlitos por pinos '+fmt(srv.internetPinos.monto));
   setT('f-carlitos-det','75% neto ('+fmt(f.neto*0.75)+') − pinos '+fmt(srv.internetPinos.monto));
   var fh=FIN_HIST[mi]||{};
@@ -777,16 +777,6 @@ function renderFinanzas(){
   var gastosRows=GASTOS_MANT.length?GASTOS_MANT.map(function(g,i){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #eee;font-size:13px"><span>'+g.fecha+' — '+g.desc+'</span><div style="display:flex;align-items:center;gap:8px"><span style="font-weight:500;color:#c0392b">-'+fmt(g.monto)+'</span><button style="background:none;border:none;cursor:pointer;color:#999;font-size:12px;padding:0 4px" onclick="eliminarGastoMant('+i+')">✕</button></div></div>';}).join(''):'<div style="font-size:12px;color:#999;padding:4px 0">Sin gastos registrados</div>';
   if(fondoEl)fondoEl.innerHTML='<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><div style="font-size:28px;font-weight:600;color:#534AB7">'+fmt(fondoAcum-totalGastosMant)+'</div><button class="btn btn-sm" onclick="editarFondoInicial()">✎ Editar saldo inicial</button></div><div id="fondo-edit-box" style="display:none;margin-bottom:10px"><div class="form-row" style="max-width:300px"><div class="form-group"><label>Saldo inicial ($)</label><input type="number" id="fondo-inicial-inp" value="'+FONDO_INICIAL+'" placeholder="0"></div></div><button class="btn btn-primary btn-sm" onclick="guardarFondoInicial()">✓ Guardar</button> <button class="btn btn-sm" onclick="document.getElementById(\'fondo-edit-box\').style.display=\'none\'">Cancelar</button></div><div style="font-size:12px;color:#6b6b6b;margin-bottom:8px">Saldo inicial '+fmt(FONDO_INICIAL)+' + 10% mensual — gastos '+fmt(totalGastosMant)+'</div><details><summary style="cursor:pointer;font-size:12px;color:#534AB7;margin-bottom:8px">Ver desglose por mes</summary>'+fondoRows+'</details><details><summary style="cursor:pointer;font-size:12px;color:#c0392b;margin-bottom:8px">Gastos registrados ('+GASTOS_MANT.length+')</summary>'+gastosRows+'</details>';
 
-  var hh='';
-  HIST_LABELS.forEach(function(label,idx){
-    if(idx<FIN_DESDE)return;
-    var ff=calcFinMes(idx); if(ff.cob===0)return;
-    var ffh=FIN_HIST[idx]||{};
-    hh+='<div style="padding:10px 0;border-bottom:1px solid #eee"><div style="display:flex;justify-content:space-between;margin-bottom:6px"><span style="font-weight:500;font-size:13px">'+label+'</span><span class="text-muted" style="font-size:12px">Cobrado: '+fmt(ff.cob)+'</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="background:#E1F5EE;border-radius:8px;padding:8px"><div style="font-size:11px;color:#085041">Jesús</div><div style="font-size:16px;font-weight:600;color:#1D9E75">'+fmt(ff.jesus)+'</div><button class="btn btn-xs '+(ffh.jesusTransferido?'btn-primary':'')+'" style="margin-top:4px" onclick="toggleTransferido('+idx+',\'jesus\')">'+(ffh.jesusTransferido?'✓ Transferido':'Marcar transferido')+'</button></div><div style="background:#E6F1FB;border-radius:8px;padding:8px"><div style="font-size:11px;color:#0C447C">Carlitos</div><div style="font-size:16px;font-weight:600;color:#185FA5">'+fmt(ff.carlitos)+'</div><button class="btn btn-xs '+(ffh.carlitosTransferido?'btn-primary':'')+'" style="margin-top:4px" onclick="toggleTransferido('+idx+',\'carlitos\')">'+(ffh.carlitosTransferido?'✓ Transferido':'Marcar transferido')+'</button></div></div></div>';
-  });
-  var histEl=document.getElementById('fin-historial');
-  if(histEl)histEl.innerHTML=hh?'<details '+(FIN_HIST_OPEN?'open':'')+' onToggle="FIN_HIST_OPEN=this.open"><summary style="cursor:pointer;font-size:13px;color:#185FA5;padding:8px 0">Ver historial de distribuciones</summary>'+hh+'</details>':'<div class="text-muted" style="padding:8px 0;font-size:13px">Sin distribuciones registradas aún</div>';
-
   // ── Depósitos en garantía ────────────────────────────────────────────────
   var depEl=document.getElementById('fin-depositos');if(!depEl)return;
   var conDep=DEPTOS.filter(function(d){return d.deposito;});
@@ -796,8 +786,6 @@ function renderFinanzas(){
   var filas=conDep.map(function(d){return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0ee;font-size:13px"><div><span style="font-weight:500">Depto '+d.num+'</span> · '+d.nombre.split(' ')[0]+'</div><span style="font-weight:600;color:#1D9E75">'+fmt(d.renta)+'</span></div>';}).join('');
   var sinFila=sinDep.length?'<div style="margin-top:8px;font-size:12px;color:#c0392b">⚠ Sin depósito: '+sinDep.map(function(d){return 'Depto '+d.num;}).join(', ')+'</div>':'';
   depEl.innerHTML=resumen+filas+sinFila;
-  // ── Resumen anual (al final para no interrumpir si hay error) ─────────────
-  try{renderResumenAnual();}catch(e){console.warn('renderResumenAnual:',e);}
 }
 function editarFondoInicial(){document.getElementById('fondo-edit-box').style.display='block';}
 function guardarFondoInicial(){var v=parseFloat(document.getElementById('fondo-inicial-inp').value)||0;FONDO_INICIAL=v;document.getElementById('fondo-edit-box').style.display='none';renderFinanzas();try{saveFinHist();}catch(e){console.warn('Firebase no disponible:',e);}}

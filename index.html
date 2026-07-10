@@ -142,40 +142,19 @@
         </div>
       </div>
 
-      <!-- Bolsas + Fondo mantenimiento en una sola card -->
-      <div class="card">
-        <div class="card-title mb-12"><i class="ti ti-wallet" style="color:#1D9E75;margin-right:6px"></i>Bolsas acumuladas <span style="font-size:11px;color:#999;font-weight:400">(NU CARD)</span></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-          <div style="background:#E1F5EE;border-radius:10px;padding:12px;position:relative">
-            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#085041;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Jesús</span><button onclick="toggleBolsaEdit('jesus',true)" style="background:none;border:none;cursor:pointer;color:#1D9E75;font-size:16px;padding:0" title="Ajustar">✎</button></div>
-            <div style="font-size:22px;font-weight:700;color:#1D9E75;margin:4px 0" id="bolsa-jesus-val">$0</div>
-            <div style="font-size:11px;color:#6b6b6b">Por retirar</div>
-            <div id="bolsa-jesus-edit" style="display:none;margin-top:8px">
-              <input type="number" id="bolsa-jesus-inp" style="width:100%;padding:4px 8px;border:1px solid #b2dfd0;border-radius:6px;font-size:13px;margin-bottom:6px">
-              <div style="display:flex;gap:6px">
-                <button class="btn btn-sm btn-primary" style="flex:1;font-size:11px" onclick="ajustarBolsa('jesus')">Guardar</button>
-                <button class="btn btn-sm" style="flex:1;font-size:11px" onclick="toggleBolsaEdit('jesus',false)">Cancelar</button>
-              </div>
+      <!-- Fondo de mantenimiento + Depósitos lado a lado -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card" style="margin:0">
+          <div class="card-title mb-12"><i class="ti ti-tool" style="color:#534AB7;margin-right:6px"></i>Fondo de mantenimiento</div>
+          <div style="background:#F0EEFF;border-radius:10px;padding:14px;position:relative">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <div style="font-size:11px;color:#3B2E9E;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Acumulado</div>
+              <button onclick="toggleBolsaEdit('mant',true)" style="background:none;border:none;cursor:pointer;color:#534AB7;font-size:16px;padding:0" title="Ajustar manualmente">✎</button>
             </div>
-          </div>
-          <div style="background:#E6F1FB;border-radius:10px;padding:12px;position:relative">
-            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#0C447C;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Carlitos</span><button onclick="toggleBolsaEdit('carlitos',true)" style="background:none;border:none;cursor:pointer;color:#185FA5;font-size:16px;padding:0" title="Ajustar">✎</button></div>
-            <div style="font-size:22px;font-weight:700;color:#185FA5;margin:4px 0" id="bolsa-carlitos-val">$0</div>
-            <div style="font-size:11px;color:#6b6b6b">Por transferir</div>
-            <div id="bolsa-carlitos-edit" style="display:none;margin-top:8px">
-              <input type="number" id="bolsa-carlitos-inp" style="width:100%;padding:4px 8px;border:1px solid #bdd4f0;border-radius:6px;font-size:13px;margin-bottom:6px">
-              <div style="display:flex;gap:6px">
-                <button class="btn btn-sm btn-primary" style="flex:1;font-size:11px" onclick="ajustarBolsa('carlitos')">Guardar</button>
-                <button class="btn btn-sm" style="flex:1;font-size:11px" onclick="toggleBolsaEdit('carlitos',false)">Cancelar</button>
-              </div>
-            </div>
-          </div>
-          <div style="background:#F0EEFF;border-radius:10px;padding:12px;position:relative">
-            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;color:#3B2E9E;font-weight:600;text-transform:uppercase;letter-spacing:.04em">Mantenimiento</span><button onclick="toggleBolsaEdit('mant',true)" style="background:none;border:none;cursor:pointer;color:#534AB7;font-size:16px;padding:0" title="Ajustar">✎</button></div>
-            <div style="font-size:22px;font-weight:700;color:#534AB7;margin:4px 0" id="bolsa-mant-val">$0</div>
-            <div style="font-size:11px;color:#6b6b6b">Fondo de mantenimiento</div>
-            <button id="btn-agregar-mant" onclick="agregarMantMes()" style="margin-top:8px;width:100%;background:#534AB7;color:#fff;border:none;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;font-weight:600">+ Agregar 10% de este mes</button>
-            <div id="bolsa-mant-edit" style="display:none;margin-top:8px">
+            <div style="font-size:28px;font-weight:700;color:#534AB7;margin:4px 0" id="bolsa-mant-val">$0</div>
+            <div style="font-size:11px;color:#6b6b6b;margin-bottom:10px">Fondo de mantenimiento</div>
+            <button id="btn-agregar-mant" onclick="agregarMantMes()" style="width:100%;background:#534AB7;color:#fff;border:none;border-radius:6px;padding:7px 8px;font-size:12px;cursor:pointer;font-weight:600">+ Agregar 10% de este mes</button>
+            <div id="bolsa-mant-edit" style="display:none;margin-top:10px">
               <div style="font-size:11px;color:#6b6b6b;margin-bottom:4px">Saldo del fondo</div>
               <input type="number" id="bolsa-mant-inp" style="width:100%;padding:4px 8px;border:1px solid #c8c0f0;border-radius:6px;font-size:13px;margin-bottom:6px" placeholder="Ej. 5000">
               <div style="display:flex;gap:6px">
@@ -184,33 +163,17 @@
               </div>
             </div>
           </div>
+          <details style="margin-top:12px">
+            <summary style="cursor:pointer;font-size:12px;color:#6b6b6b;padding:4px 0;user-select:none">Detalle fondo de mantenimiento</summary>
+            <div id="fondo-mant-display" style="margin-top:10px"></div>
+          </details>
         </div>
-        <div style="margin-top:10px;display:flex;justify-content:flex-end">
-          <button class="btn btn-sm" onclick="recalcularBolsas()" title="Recalcula Jesús y Carlitos desde el historial real"><i class="ti ti-refresh"></i> Recalcular bolsas</button>
+
+        <div class="card" style="margin:0">
+          <div class="card-title mb-12"><i class="ti ti-lock" style="color:#1D9E75;margin-right:6px"></i>Depósitos en garantía</div>
+          <div id="fin-depositos"></div>
         </div>
-        <details style="margin-top:8px">
-          <summary style="cursor:pointer;font-size:12px;color:#6b6b6b;padding:4px 0;user-select:none">Detalle fondo de mantenimiento</summary>
-          <div id="fondo-mant-display" style="margin-top:10px"></div>
-        </details>
       </div>
-
-      <!-- Depósitos en garantía -->
-      <div class="card">
-        <div class="card-title mb-12"><i class="ti ti-lock" style="color:#1D9E75;margin-right:6px"></i>Depósitos en garantía</div>
-        <div id="fin-depositos"></div>
-      </div>
-
-      <!-- Resumen anual -->
-      <details class="card" style="cursor:default">
-        <summary style="cursor:pointer;font-size:14px;font-weight:600;list-style:none;display:flex;align-items:center;gap:6px;color:#1a1a1a"><i class="ti ti-calendar-stats" style="color:#6b6b6b"></i> Resumen anual</summary>
-        <div id="fin-resumen-anual" style="margin-top:12px"></div>
-      </details>
-
-      <!-- Historial colapsable -->
-      <details class="card" style="cursor:default">
-        <summary style="cursor:pointer;font-size:14px;font-weight:600;list-style:none;display:flex;align-items:center;gap:6px;color:#1a1a1a"><i class="ti ti-history" style="color:#6b6b6b"></i> Historial de distribuciones</summary>
-        <div id="fin-historial" style="margin-top:12px"></div>
-      </details>
 
       <!-- Export -->
       <div class="card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
