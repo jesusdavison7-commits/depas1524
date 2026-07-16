@@ -1758,9 +1758,9 @@ function guardarInq(){
   var iniRef=inicio||prevD.inicio||'';
   var inmobMes=null;
   if(viaInmob){
-    if(prevD.inmobMesComision!=null){inmobMes=prevD.inmobMesComision;}
-    else if(iniRef){var ir=new Date(iniRef+'T12:00:00');inmobMes=mesIdx(ir.getFullYear(),ir.getMonth());}
-    else{inmobMes=MEX_MES;} // fallback: mes actual si no hay fecha inicio
+    if(iniRef){var ir=new Date(iniRef+'T12:00:00');inmobMes=mesIdx(ir.getFullYear(),ir.getMonth());}
+    else if(prevD.inmobMesComision!=null){inmobMes=prevD.inmobMesComision;}
+    else{inmobMes=MEX_MES;}
   }
   var obj={num:newNum,nombre:nombre,renta:renta,diaPago:dia,contrato:contrato,inicio:iniRef,finDate:finDate,finStr:finStr,deposito:document.getElementById('f-dep').value==='Sí, pagado',viaInmobiliaria:viaInmob,inmobMesComision:inmobMes,tel:document.getElementById('f-tel').value,email:document.getElementById('f-email').value,curp:document.getElementById('f-curp').value,nacimiento:document.getElementById('f-nac').value,ocupacion:document.getElementById('f-ocup').value,domicilio:document.getElementById('f-dom').value,notas:document.getElementById('f-notas').value,ineInqUrl:DEPTOS[editIdx].ineInqUrl||'',ineAvalUrl:DEPTOS[editIdx].ineAvalUrl||'',bitacora:DEPTOS[editIdx].bitacora||[],aval:aval};
   if(newNum!==oldNum){delDepto(oldNum);VACIOS=VACIOS.filter(function(v){return v!==newNum;});VACIOS.push(oldNum);VACIOS.sort(function(a,b){return a-b;});}
