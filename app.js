@@ -418,7 +418,13 @@ function renderTablaCombinada(){
     var diaReal=diaEfectivo(d.diaPago,anioHoy,mesHoy);
     var p=getPago(d.num,miActual),ok=p&&p.pagado;
     var badge,rowBg='',accion;
-    if(ok){
+    // Contrato aún no iniciado: no mostrar estado de pago
+    var _iniRawD=d.inicio||d.iniDate||'';
+    var _iniMiD=_iniRawD?mesIdx(new Date(_iniRawD+'T12:00:00').getFullYear(),new Date(_iniRawD+'T12:00:00').getMonth()):null;
+    if(_iniMiD!==null&&_iniMiD>miActual){
+      badge='<span class="badge" style="font-size:10px;background:#f0f0ee;color:#888;border:1px solid #ddd">Inicia '+idxLabel(_iniMiD)+'</span>';
+      accion='';rowBg='#fafafa';
+    } else if(ok){
       badge='<span class="badge badge-green" style="font-size:10px">✓ Pagado</span>'+(p.fecha?'<div style="font-size:10px;color:#6b6b6b;margin-top:2px">'+fmtD(p.fecha)+'</div>':'');
       accion='<button class="btn btn-xs btn-danger" onclick="tablaDesmarcarDepto('+d.num+')"><i class="ti ti-rotate-left"></i></button>';
     } else {
