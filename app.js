@@ -1084,7 +1084,9 @@ function darDeAlta(){
   renderAll();
 }
 function prevContrato(){
-  var nom=document.getElementById('c-nombre').value||'[NOMBRE INQUILINO]',av=document.getElementById('c-aval').value||'[NOMBRE AVAL]',num=document.getElementById('c-depto').value||'?';
+  var nom=document.getElementById('c-nombre').value||'[NOMBRE INQUILINO]',av=document.getElementById('c-aval').value||'[NOMBRE AVAL]';
+  var _selV=document.getElementById('c-sel').value;
+  var num=_selV!==''?DEPTOS[parseInt(_selV)].num:(document.getElementById('c-depto').value||'?');
   var dur=document.getElementById('c-dur').value,ini=document.getElementById('c-ini').value,fin=document.getElementById('c-fin-f').value,monto=parseFloat(document.getElementById('c-monto').value)||5000;
   function fD(iso){if(!iso)return'[FECHA]';var d=new Date(iso+'T12:00:00');return d.getDate()+' DE '+MS_UP[d.getMonth()]+' DE '+d.getFullYear();}
   function hl(t){return '<span class="hl">'+t+'</span>';}
@@ -1094,7 +1096,9 @@ function prevContrato(){
 }
 function genContrato(formato){
   var nom=document.getElementById('c-nombre').value.trim()||'___________________________',av=document.getElementById('c-aval').value.trim()||'___________________________';
-  var num=parseInt(document.getElementById('c-depto').value)||1,dur=document.getElementById('c-dur').value,monto=parseFloat(document.getElementById('c-monto').value)||5000,ini=document.getElementById('c-ini').value||'___/___/______',fin=document.getElementById('c-fin-f').value||'___/___/______';
+  var _selV2=document.getElementById('c-sel').value;
+  var num=_selV2!==''?DEPTOS[parseInt(_selV2)].num:(parseInt(document.getElementById('c-depto').value)||1);
+  var dur=document.getElementById('c-dur').value,monto=parseFloat(document.getElementById('c-monto').value)||5000,ini=document.getElementById('c-ini').value||'___/___/______',fin=document.getElementById('c-fin-f').value||'___/___/______';
   if(formato==='pdf'){genPDFNativo(nom,av,num,dur,ini,fin,monto);return;}
   var btn=document.getElementById('btn-gen-docx'),orig=btn.innerHTML;btn.innerHTML='<div class="loading-dots"><span></span><span></span><span></span></div> Generando…';btn.disabled=true;
   try{
