@@ -145,7 +145,7 @@ function getContractMonths(d) {
 }
 
 function getSrv(mi) {
-  if(!SERVICIOS[mi]) SERVICIOS[mi]={internet:{monto:1000,fijo:true,pagado:false},agua:{monto:400,fijo:false,pagado:false},limpieza:{monto:2400,fijo:false,pagado:false},internetPinos:{monto:500,fijo:false,pagado:false},celular:{monto:20,fijo:false,pagado:false},cfe:{monto:0,fijo:false,pagado:false}};
+  if(!SERVICIOS[mi]) SERVICIOS[mi]={internet:{monto:1000,fijo:true,pagado:false},agua:{monto:400,fijo:false,pagado:false},limpieza:{monto:2400,fijo:false,pagado:false},internetPinos:{monto:1000,fijo:false,pagado:false},celular:{monto:20,fijo:false,pagado:false},cfe:{monto:0,fijo:false,pagado:false}};
   if(!SERVICIOS[mi].internetPinos) SERVICIOS[mi].internetPinos={monto:500,fijo:false,pagado:false};
   if(!SERVICIOS[mi].celular) SERVICIOS[mi].celular={monto:20,fijo:false,pagado:false};
   if(!SERVICIOS[mi].cfe) SERVICIOS[mi].cfe={monto:0,fijo:false,pagado:false};
@@ -759,6 +759,7 @@ function renderFinanzas(){
   // Desglose servicios edificio por línea
   setT('f-srv-internet','-'+fmt(f.internet));
   setT('f-srv-agua','-'+fmt(f.agua));
+  setT('f-srv-pinos','+'+fmt(srv.internetPinos.monto));
   var cfeRow=document.getElementById('f-srv-cfe-row');
   if(cfeRow){cfeRow.style.display=f.cfe>0?'flex':'none';}
   setT('f-srv-cfe','-'+fmt(f.cfe));
