@@ -972,6 +972,12 @@ function renderContratos(){
     depSel.innerHTML='<option value="">— Selecciona —</option>';
     vacios.forEach(function(n){depSel.innerHTML+='<option value="'+n+'">Depto '+n+'</option>';});
     if(current&&vacios.indexOf(parseInt(current))>-1)depSel.value=current;
+    // Si el depto elegido está ocupado (renovación), no perderlo al re-renderizar: re-seleccionar al inquilino
+    var occIdx=current?ocupados.indexOf(parseInt(current)):-1;
+    if(occIdx>-1){
+      depSel.innerHTML='<option value="'+current+'">Depto '+current+'</option>';
+      depSel.value=current;sel.value=String(occIdx);
+    }
   }
   checkAltaBtn();prevContrato();
   cargarFormPinos();
@@ -1105,7 +1111,8 @@ function prevContrato(){
 function genContrato(formato){
   var nom=document.getElementById('c-nombre').value.trim()||'___________________________',av=document.getElementById('c-aval').value.trim()||'___________________________';
   var _selV2=document.getElementById('c-sel').value;
-  var num=_selV2!==''?DEPTOS[parseInt(_selV2)].num:(parseInt(document.getElementById('c-depto').value)||1);
+  var num=_selV2!==''?DEPTOS[parseInt(_selV2)].num:parseInt(document.getElementById('c-depto').value);
+  if(!num){alert('Selecciona el departamento antes de generar el contrato');return;}
   var dur=document.getElementById('c-dur').value,monto=parseFloat(document.getElementById('c-monto').value)||5000,ini=document.getElementById('c-ini').value||'___/___/______',fin=document.getElementById('c-fin-f').value||'___/___/______';
   if(formato==='pdf'){genPDFNativo(nom,av,num,dur,ini,fin,monto);return;}
   var btn=document.getElementById('btn-gen-docx'),orig=btn.innerHTML;btn.innerHTML='<div class="loading-dots"><span></span><span></span><span></span></div> Generando…';btn.disabled=true;
