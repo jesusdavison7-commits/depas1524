@@ -70,6 +70,7 @@ var FIN_HIST = {};
 var FONDO_INICIAL = 0;
 var MANT_STATE = {};
 var GASTOS_MANT = [];
+var GASTOS_CARLOS = []; // gastos ajenos a los depas que se cobran solo a Carlitos
 var MANT_NOTAS = {aires:[],lavadoras:[],infra:[]};
 var MANT_HIST_OPEN = false;
 var FIN_HIST_OPEN = false;
@@ -120,7 +121,7 @@ var SRV_META = [
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-function fmt(n) { return '$' + Math.round(n).toLocaleString('es-MX'); }
+function fmt(n) { var r=Math.round(n||0); return (r<0?'-$':'$') + Math.abs(r).toLocaleString('es-MX'); }
 // Escapa caracteres HTML para prevenir XSS en innerHTML
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function avI(name) { var p=esc(name).trim().split(' '); return (p[0][0]+(p[1]?p[1][0]:'')).toUpperCase(); }
@@ -196,7 +197,9 @@ function calcFinMes(mi) {
   // Se descuentan de la parte de Carlitos y se suman a la de Jesús
   var jesusBase=neto*0.25;
   var carlitosBase=neto*0.75;
-  return{cob:cob,mant:mant,limp:limp,internet:internet,agua:agua,cfe:cfe,cfePeriodo:srv.cfe&&srv.cfe.periodo||'',srvEdif:srvEdif,gastosMant:gastosMant,neto:neto,srvJ:srvJ,jesus:jesusBase+srvJ,carlitos:Math.max(0,carlitosBase-srvJ)};
+  // Gastos ajenos a los depas: solo salen de la parte de Carlitos (puede quedar negativo)
+  var gastosCarlos=GASTOS_CARLOS.filter(function(g){return gastoMesIdx(g)===mi;}).reduce(function(s,g){return s+g.monto;},0);
+  return{cob:cob,mant:mant,limp:limp,internet:internet,agua:agua,cfe:cfe,cfePeriodo:srv.cfe&&srv.cfe.periodo||'',srvEdif:srvEdif,gastosMant:gastosMant,neto:neto,srvJ:srvJ,gastosCarlos:gastosCarlos,jesus:jesusBase+srvJ,carlitos:Math.max(0,carlitosBase-srvJ)-gastosCarlos};
 }
 
 // ── Toast de errores ───────────────────────────────────────────────────────
@@ -240,6 +243,24 @@ function agregarGastoMant(){
 function eliminarGastoMant(idx){
   if(!confirm('¿Eliminar este gasto?'))return;
   GASTOS_MANT.splice(idx,1);saveGastosMant();renderServicios();renderFinanzas();
+}
+function saveGastosCarlos() { return safeSave(db.collection('config').doc('gastosCarlos').set({data:GASTOS_CARLOS}),'gastos Carlos'); }
+function agregarGastoCarlos(){
+  var desc=(document.getElementById('gc-desc')||{}).value||'';desc=desc.trim();
+  var monto=parseFloat((document.getElementById('gc-monto')||{}).value)||0;
+  var fecha=(document.getElementById('gc-fecha')||{}).value||'';
+  if(!desc||!monto||!fecha){alert('Completa concepto, monto y fecha');return;}
+  var parts=fecha.split('-');var d=parts[2]+'/'+parts[1]+'/'+parts[0];
+  var gmi=mesIdx(parseInt(parts[0]),parseInt(parts[1])-1);
+  GASTOS_CARLOS.unshift({desc:desc,monto:monto,fecha:d,mesIdx:gmi});
+  saveGastosCarlos();
+  var sel=document.getElementById('srv-mes-sel');if(sel&&gmi>=0&&gmi<=MEX_MES)sel.value=gmi;
+  renderServicios();renderFinanzas();renderDashboard();
+}
+function eliminarGastoCarlos(idx){
+  var g=GASTOS_CARLOS[idx];if(!g)return;
+  if(!confirm('¿Eliminar el gasto "'+g.desc+'" de '+fmt(g.monto)+'?'))return;
+  GASTOS_CARLOS.splice(idx,1);saveGastosCarlos();renderServicios();renderFinanzas();renderDashboard();
 }
 function saveFinHist() { return safeSave(db.collection('config').doc('finHistorial').set({data:FIN_HIST,fondoInicial:FONDO_INICIAL,bolsaJesus:BOLSA_JESUS||0,bolsaCarlitos:BOLSA_CARLITOS||0,bolsaMant:BOLSA_MANT||0}),'finanzas'); }
 function saveInqHist() { return safeSave(db.collection('config').doc('inqHistorial').set({data:INQ_HIST}),'historial'); }
@@ -288,6 +309,9 @@ function loadRest() {
     return db.collection('config').doc('gastosMant').get();
   }).then(function(snap){
     GASTOS_MANT=snap.exists?(snap.data().data||[]):[];
+    return db.collection('config').doc('gastosCarlos').get();
+  }).then(function(snap){
+    GASTOS_CARLOS=snap.exists?(snap.data().data||[]):[];
     return db.collection('config').doc('pinos').get();
   }).then(function(snap){
     if(snap.exists){PINOS=snap.data();}
@@ -694,6 +718,29 @@ function renderServicios() {
       '<div style="flex-shrink:0">'+accion+'</div>'+
     '</div>';
   });
+  // Gastos ajenos cobrados solo a Carlitos (mismo listado de servicios)
+  GASTOS_CARLOS.forEach(function(g,gi){
+    if(gastoMesIdx(g)!==mi)return;
+    cont.innerHTML+='<div style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-top:1px solid #f0f0ee">'+
+      '<i class="ti ti-user-dollar" style="color:#185FA5;font-size:18px;flex-shrink:0"></i>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:13px;font-weight:500;display:flex;align-items:center;flex-wrap:wrap">'+esc(g.desc)+'<span style="font-size:10px;color:#185FA5;background:#E6F1FB;padding:1px 6px;border-radius:10px;margin-left:4px">cargo a Carlos</span></div>'+
+        '<div style="font-size:11px;color:#999;margin-top:1px">'+esc(g.fecha)+' · se descuenta solo de la parte de Carlitos</div>'+
+      '</div>'+
+      '<span style="font-weight:600;font-size:14px;color:#c0392b">-'+fmt(g.monto)+'</span>'+
+      '<button style="background:none;border:none;cursor:pointer;color:#ccc;font-size:14px;padding:2px 6px;flex-shrink:0" onclick="eliminarGastoCarlos('+gi+')" title="Eliminar">✕</button>'+
+    '</div>';
+  });
+  var hoy=new Date(),hoyMi=mesIdx(hoy.getFullYear(),hoy.getMonth());
+  var gcDefault=hoyMi===mi?hoy.toISOString().split('T')[0]:'';
+  cont.innerHTML+='<div style="padding:10px 16px;border-top:1px dashed #d6e4f3;background:#f7fbff">'+
+    '<div style="font-size:11px;color:#185FA5;font-weight:500;margin-bottom:6px"><i class="ti ti-plus"></i> Agregar gasto a cargo de Carlos</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 100px 130px auto;gap:8px;align-items:end">'+
+      '<input type="text" id="gc-desc" placeholder="Concepto" style="font-size:13px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;min-width:0">'+
+      '<input type="number" id="gc-monto" placeholder="$" style="font-size:13px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;min-width:0">'+
+      '<input type="date" id="gc-fecha" value="'+gcDefault+'" style="font-size:13px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;min-width:0">'+
+      '<button class="btn btn-primary btn-sm" onclick="agregarGastoCarlos()" style="white-space:nowrap">+ Agregar</button>'+
+    '</div></div>';
   document.getElementById('srv-total').textContent=fmt(totalSrvJesus(mi));
   // Historial
   var ht=document.getElementById('cfe-hist'); ht.innerHTML='';
@@ -771,7 +818,8 @@ function renderFinanzas(){
   // Bolsa mantenimiento: valor manual controlado por el usuario
   setT('bolsa-mant-val',fmt(BOLSA_MANT));
   setT('f-jesus-det','25% neto ('+fmt(f.neto*0.25)+') + cobro a Carlitos por pinos '+fmt(srv.internetPinos.monto));
-  setT('f-carlitos-det','75% neto ('+fmt(f.neto*0.75)+') − pinos '+fmt(srv.internetPinos.monto));
+  setT('f-carlitos-det','75% neto ('+fmt(f.neto*0.75)+') − pinos '+fmt(srv.internetPinos.monto)+(f.gastosCarlos?' − gastos de Carlos '+fmt(f.gastosCarlos):''));
+  var fcEl=document.getElementById('f-carlitos');if(fcEl)fcEl.style.color=f.carlitos<0?'#c0392b':'';
   var fh=FIN_HIST[mi]||{};
   var btnJ=document.getElementById('btn-transfer-jesus');var lblJ=document.getElementById('lbl-transfer-jesus');
   var btnC=document.getElementById('btn-transfer-carlitos');var lblC=document.getElementById('lbl-transfer-carlitos');
@@ -916,7 +964,7 @@ function marcarTransferido(quien){
   }
   FIN_HIST[mi][quien+'Transferido']=!antes;
   if(quien==='jesus') BOLSA_JESUS=Math.max(0, antes ? BOLSA_JESUS-monto : BOLSA_JESUS+monto);
-  else if(quien==='carlitos') BOLSA_CARLITOS=Math.max(0, antes ? BOLSA_CARLITOS-monto : BOLSA_CARLITOS+monto);
+  else if(quien==='carlitos') BOLSA_CARLITOS=antes ? BOLSA_CARLITOS-monto : BOLSA_CARLITOS+monto;
   try{saveFinHist();}catch(e){}
   renderFinanzas();
 }
@@ -933,7 +981,7 @@ function toggleTransferido(mi,quien){
   }
   FIN_HIST[mi][quien+'Transferido']=!antes;
   if(quien==='jesus') BOLSA_JESUS=Math.max(0, antes ? BOLSA_JESUS-monto : BOLSA_JESUS+monto);
-  else if(quien==='carlitos') BOLSA_CARLITOS=Math.max(0, antes ? BOLSA_CARLITOS-monto : BOLSA_CARLITOS+monto);
+  else if(quien==='carlitos') BOLSA_CARLITOS=antes ? BOLSA_CARLITOS-monto : BOLSA_CARLITOS+monto;
   try{saveFinHist();}catch(e){}
   renderFinanzas();
 }
